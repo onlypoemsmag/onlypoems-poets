@@ -678,7 +678,7 @@
     cam.x -= dx; cam.y -= dy; tgt.x = cam.x; tgt.y = cam.y;
     vel = { x: dx, y: dy, t: performance.now() };
     last = { x: e.clientX, y: e.clientY };
-    hideHint(); away(true); markMoving();
+    hideHint(); markMoving();
     dirty = true;            // coalesce into the next frame instead of doing it now
     kick();
   });
@@ -713,7 +713,12 @@
      solving a problem this page no longer has. */
   stage.addEventListener("wheel", function (e) {
     e.preventDefault();
-    hideHint(); away(true); fling = false;
+    hideHint(); fling = false;
+    /* Scrolling up takes you in and puts the bars away; scrolling down pulls
+       you out and brings them back. One rule, one input, and reversible by the
+       same movement that caused it — which is what a timer could never be.
+       Dragging and pinching leave them exactly where they are. */
+    away(e.deltaY < 0);
     var f = Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.028 : 0.0022));
     tgt.s = Math.min(MAX_S, Math.max(MIN_S, tgt.s * f));
     var r = stage.getBoundingClientRect();
@@ -747,7 +752,7 @@
     cam.x = tgt.x = wx - mx / ns;
     cam.y = tgt.y = wy - my / ns;
     pinch = p;
-    hideHint(); away(true); markMoving(); applyCam();
+    hideHint(); markMoving(); applyCam();
     dirty = true; kick();          // let the frame loop do the tiles, not this
   }, { passive: false });
   /* Lift one finger out of a pinch and the other is still on the glass, so it
@@ -787,11 +792,9 @@
      scroll here, so the wall drives it instead — same effect, different cause.
      The search bar stays a search bar throughout: folding it to an icon was
      worse than the clash with the navbar's own search that it was avoiding. */
-  var awayNow = false, awayTimer = 0;
+  var awayNow = false;
   function away(on) {
     if (on && (qEl.value || document.activeElement === qEl)) return;
-    clearTimeout(awayTimer);
-    if (on) awayTimer = setTimeout(function () { away(false); }, 1500);
     if (on === awayNow) return;
     awayNow = on;
     bar.classList.toggle("opw-away", on);
@@ -801,11 +804,8 @@
       navEl.style.transform = on ? "translateY(-" + (navH + 10) + "px)" : "";
     }
   }
-  /* Reaching for the top of the screen is asking for the navbar back. */
-  window.addEventListener("pointermove", function (e) {
-    if (awayNow && e.clientY < Math.max(70, navH)) away(false);
-  }, { passive: true });
   qEl.addEventListener("focus", function () { away(false); });
+
 
   var rt;
   window.addEventListener("resize", function () {
@@ -986,7 +986,7 @@
     reader.animate([{ opacity: 0 }, { opacity: 1 }], { duration: Math.round(D * .75), easing: "ease-out" });
   }
 
-  var htmlOverflow = "", cameFrom = null;
+  var htmlOverflow = "", cameFrom = null, openedFrom = null, shutting = false;
   function open(i, fromEl) {
     if (i < 0 || i >= view.length) return;
     cur = i;
@@ -1018,6 +1018,7 @@
     });
 
     var wasOpen = reader.classList.contains("opw-open");
+    if (!wasOpen) openedFrom = fromEl || null;
     reading = true;
     layer.classList.add("opw-blur");
     bar.classList.add("opw-off"); zoomEl.classList.add("opw-off"); hintEl.classList.add("opw-off");
@@ -1038,20 +1039,65 @@
     requestAnimationFrame(function () { fade(); syncBar(); });
   }
 
+  /* Where this poet is on the wall right now. The wall is frozen while a card
+     is open, so the tile is still exactly where it was — and if you have arrowed
+     along to somebody else, this finds THEIR tile, so the card goes back to the
+     poet you are actually looking at rather than the one you started from. */
+  function tileFor(i) {
+    var els = layer.querySelectorAll('.opw-tile[data-i="' + i + '"]');
+    var best = null, bd = 1e9;
+    for (var k = 0; k < els.length; k++) {
+      var r = els[k].getBoundingClientRect();
+      var d = Math.hypot(r.left + r.width / 2 - vw / 2, r.top + r.height / 2 - vh / 2);
+      if (d < bd) { bd = d; best = els[k]; }
+    }
+    return best;
+  }
+
+  /* The way in, run backwards and a little quicker, easing in rather than out —
+     a thing being put down travels differently from a thing being picked up. */
+  function playShut(toEl, done) {
+    if (calm || !flipwrap.animate || !toEl) { done(); return; }
+    var D = 400;
+    var from = flipwrap.getBoundingClientRect();
+    var r = toEl.getBoundingClientRect();
+    if (!r.width || !from.width) { done(); return; }
+    var sc = Math.max(0.08, r.width / from.width);
+    var dx = (r.left + r.width / 2) - (from.left + from.width / 2);
+    var dy = (r.top + r.height / 2) - (from.top + from.height / 2);
+    var a = flipwrap.animate([
+      { transform: "none", opacity: 1 },
+      { transform: "translate(" + dx + "px," + dy + "px) scale(" + sc + ") rotate(" +
+        tileAngle(toEl) + "deg)", opacity: .35 }
+    ], { duration: D, easing: "cubic-bezier(.45,0,.75,.35)", fill: "forwards" });
+    var b = reader.animate([{ opacity: 1 }, { opacity: 0 }],
+      { duration: D, easing: "ease-in", fill: "forwards" });
+    var fin = function () { a.cancel(); b.cancel(); done(); };
+    if (a.finished) a.finished.then(fin, fin); else a.onfinish = fin;
+  }
+
   function shut() {
-    reader.classList.remove("opw-open");
+    if (shutting) return;
+    shutting = true;
+    var back = tileFor(cur) || openedFrom;
+    /* The wall comes back into focus as the card leaves, not after it. */
     layer.classList.remove("opw-blur");
     bar.classList.remove("opw-off"); zoomEl.classList.remove("opw-off"); hintEl.classList.remove("opw-off");
-    document.documentElement.style.overflow = htmlOverflow;
-    reading = false;
     sbar.classList.remove("opw-show");
-    cur = -1;
-    if (cameFrom && cameFrom.focus) {
-      try { cameFrom.focus({ preventScroll: true }); } catch (err) { cameFrom.focus(); }
-    }
-    cameFrom = null;
-    lastKey = "";               // catch up on anything that moved while we were away
-    populate();
+    playShut(back, function () {
+      reader.classList.remove("opw-open");
+      document.documentElement.style.overflow = htmlOverflow;
+      reading = false;
+      shutting = false;
+      cur = -1;
+      openedFrom = null;
+      if (cameFrom && cameFrom.focus) {
+        try { cameFrom.focus({ preventScroll: true }); } catch (err) { cameFrom.focus(); }
+      }
+      cameFrom = null;
+      lastKey = "";             // catch up on anything that moved while we were away
+      populate();
+    });
   }
   function step(n) { if (cur < 0) return; open((cur + n + view.length) % view.length); }
 
