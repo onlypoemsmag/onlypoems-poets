@@ -25,8 +25,11 @@
 
   /* ------------------------------------------------------------ styles */
   var CSS = [
+    /* No rounded corners and no inset. A wall with a frame around it is a
+       picture of a wall; the cards have to run off all four edges for it to
+       read as something that carries on past the window. */
     "#op-poets-wall{position:relative;display:block!important;padding:0;border:0!important;",
-      "min-height:0!important;overflow:hidden;border-radius:14px;",
+      "min-height:0!important;overflow:hidden;border-radius:0;",
       "--opw-blue:#0153db;--opw-pale:#edefff;--opw-wash:#c3cfff;--opw-ink:#05214e;",
       "--opw-pink:#ff84f9;--opw-paper:#fefcff;--opw-blush:#fdf2ff;--opw-blush-deep:#fde7ff;",
       "--opw-display:\"cofo-raffine\",\"Playfair Display\",Georgia,serif;",
@@ -58,7 +61,12 @@
     ".opw-ph{position:relative;width:100%;border-radius:6px;overflow:hidden;background:#f6e9fa}",
     ".opw-tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;",
       "opacity:0;transition:opacity .4s ease}",
-    ".opw-tile img.opw-on{opacity:1}",
+    /* !important, and it has to be. The site's reveal script puts a Web
+       Animation on every image that holds it at opacity 0 until it scrolls into
+       view — and these images are made after that script has finished looking,
+       so the reveal never comes and the whole wall renders blank. A Web
+       Animation outranks an ordinary declaration; only !important outranks it. */
+    ".opw-tile img.opw-on{opacity:1!important}",
     ".opw-cap{font-family:var(--opw-read);font-size:12.5px;line-height:1;color:#000;",
       "padding:9px 2px 10px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
     /* while the camera is moving, drop the hover ring work */
@@ -100,8 +108,18 @@
     ".opw-off{opacity:0;pointer-events:none}",
 
     /* ---------------------------------------------------------- the card */
+    /* The palette is repeated here, and it has to be. The reader is appended to
+       the body rather than to the container, so it inherits nothing from it —
+       and a custom property that doesn't resolve doesn't fall back, it drops
+       the declaration. The card was rendering with no paper behind it at all,
+       the page showing straight through the poem. */
     ".opw-reader{position:fixed;inset:0;z-index:9999;display:none;place-items:center;",
-      "background:rgba(253,242,255,.74);--opw-sx:.5;--opw-sy:.5;--opw-lit:0}",
+      "background:rgba(253,242,255,.74);--opw-sx:.5;--opw-sy:.5;--opw-lit:0;",
+      "--opw-blue:#0153db;--opw-pale:#edefff;--opw-wash:#c3cfff;--opw-ink:#05214e;",
+      "--opw-pink:#ff84f9;--opw-paper:#fefcff;--opw-blush:#fdf2ff;--opw-blush-deep:#fde7ff;",
+      "--opw-display:\"cofo-raffine\",\"Playfair Display\",Georgia,serif;",
+      "--opw-read:\"calluna\",\"Source Serif 4\",Georgia,serif;",
+      "--opw-ui:\"basic-sans\",\"Archivo\",-apple-system,BlinkMacSystemFont,sans-serif}",
     ".opw-reader.opw-open{display:grid}",
     ".opw-flipwrap{perspective:1600px;perspective-origin:50% 42%;width:min(91vw,452px);",
       "height:min(89vh,712px);transform-origin:50% 50%}",
@@ -133,7 +151,7 @@
     ".opw-front{display:flex;flex-direction:column;cursor:pointer}",
     ".opw-pic{flex:1 1 auto;min-height:0;background:#f6e9fa;position:relative;",
       "margin:10px 10px 0;border-radius:12px;overflow:hidden}",
-    ".opw-pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}",
+    ".opw-pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:1!important}",
     ".opw-ffoot{flex:0 0 auto;padding:15px 20px 18px;text-align:center}",
     ".opw-nm{font-family:var(--opw-read);font-size:19px;color:#000;line-height:1.2}",
     ".opw-cr{font-family:var(--opw-ui);font-size:10.5px;letter-spacing:.06em;",
@@ -204,8 +222,29 @@
       "color:var(--opw-ink);cursor:pointer;font-size:16px;display:grid;place-items:center;",
       "box-shadow:0 4px 14px -6px rgba(74,12,70,.4)}",
     ".opw-x:hover{color:var(--opw-blue);background:var(--opw-blush-deep)}",
-    "@media (max-width:640px){.opw-nav{display:none}.opw-bar input{width:100%;flex:1 1 auto}",
-      ".opw-bhead h2{font-size:26px}}",
+    /* On a phone the search box has to span the wall rather than shrink to fit
+       its placeholder, the hint has to sit above the zoom buttons instead of
+       running into them, and the card has to leave room at the top for the
+       close button — at 740px tall it was landing on the poet's face. */
+    "@media (max-width:640px){.opw-nav{display:none}",
+      ".opw-bar{width:min(92%,460px);max-width:none}",
+      ".opw-bar input{width:100%;flex:1 1 auto;min-width:0}",
+      ".opw-hint{bottom:64px;font-size:11.5px;padding:6px 13px;max-width:92%;",
+        "overflow:hidden;text-overflow:ellipsis}",
+      ".opw-flipwrap{height:min(84vh,712px)}",
+      ".opw-x{top:12px;right:12px;width:34px;height:34px}",
+      ".opw-bhead{padding:34px 22px 12px}.opw-body{padding:14px 22px 20px}",
+      ".opw-bfoot{padding:12px 22px 15px}.opw-bhead h2{font-size:26px}}",
+    /* Sideways on a phone. The card is sized off the height and kept to the
+       proportions of a real card, rather than filling the width and coming out
+       squat — 452 by 712 is the shape everywhere else, so hold it here too. */
+    "@media (max-height:620px){.opw-nav{display:none}",
+      ".opw-flipwrap{height:92vh;width:min(91vw,calc(92vh * 0.635))}",
+      ".opw-bhead{padding:20px 17px 7px}.opw-bhead h2{font-size:21px}",
+      ".opw-who{font-size:13px}",
+      ".opw-body{padding:9px 17px 13px;font-size:14px}",
+      ".opw-bfoot{padding:9px 17px 11px}.opw-bfoot a{font-size:10.5px;padding:7px 10px}",
+      ".opw-x{top:10px;right:10px}}",
     "@media (prefers-reduced-motion:reduce){.opw-tile,.opw-cardtilt{transition:none!important}}"
   ].join("");
 
@@ -241,7 +280,7 @@
 
   var coarse = window.matchMedia && window.matchMedia("(pointer:coarse)").matches;
   hintEl.textContent = coarse
-    ? "drag to pan · pinch to zoom · tap a poet to read"
+    ? "drag · pinch · tap to read"
     : "drag to pan · pinch or ctrl-scroll to zoom · click a poet to read";
 
   /* The reader is appended to the body, not the container: a fixed element
@@ -298,10 +337,26 @@
     var box = stage.getBoundingClientRect();
     vw = Math.round(box.width) || 1;
     var ih = window.innerHeight || 800;
-    vh = Math.round(Math.max(440, Math.min(vw * 0.62, 760)));
-    /* Keep page either side of it. A wall that fills the screen on a phone is
-       a wall you cannot scroll past. */
-    if (vw < 720) vh = Math.round(Math.min(vh, ih * 0.68));
+    /* On a wide screen the wall takes everything from wherever it starts down
+       to the bottom of the window. Anything less and it reads as a panel with
+       a wall printed on it rather than a wall you are looking through a window
+       at — the cards have to be cut off by the edge of the screen, not by a
+       box. Measured rather than assumed, so it doesn't care how tall the navbar
+       above it happens to be.
+
+       On a phone it can't do that. touch-action:none means a finger that lands
+       on the wall pans the wall and not the page, so it takes about half the
+       screen and leaves somewhere to put a thumb when what you want is to
+       scroll past. Sized off the screen, or a tall phone gets the same short
+       strip as a small one. */
+    var above = Math.min(300, Math.max(0, box.top + (window.scrollY || 0)));
+    vh = vw < 720
+      ? Math.round(Math.max(360, Math.min(ih * 0.52, 520)))
+      : Math.round(Math.max(440, Math.min(ih - above, 1100)));
+    /* A phone turned sideways is wide enough to look like a desktop and short
+       enough that the desktop height runs off the bottom of the screen. Go by
+       how tall the window actually is, not how wide. */
+    if (ih < 620) vh = Math.round(Math.min(vh, Math.max(260, ih * 0.74)));
     stage.style.height = vh + "px";
     lastKey = "";
     applyCam();
@@ -647,7 +702,7 @@
       tgt.s = cam.s = Math.min(1.2, Math.max(MIN_S,
         Math.min(vw / (box.w + 240), vh / (box.h + 260))));
     } else if (!q) {
-      tgt.s = cam.s = vw < 700 ? 0.55 : 0.66;
+      tgt.s = cam.s = vw < 700 ? 0.45 : 0.66;
     }
     applyCam(); rebuild();
   }
