@@ -16,6 +16,7 @@
   var ROOT_ID = "op-poets-wall";
   var root = document.getElementById(ROOT_ID);
   if (!root) return;
+  root.setAttribute("data-lenis-prevent", "");
 
   /* ------------------------------------------------- where is wall.json */
   var here = (document.currentScript && document.currentScript.src) || "";
@@ -94,17 +95,10 @@
       "color:#cbb0cd;transition:color .2s ease;pointer-events:none}",
     ".opw-glass svg{width:15px;height:15px}",
     ".opw-bar.opw-typing .opw-glass{color:var(--opw-blue)}",
-    /* Collapsed, the bar is just the magnifier. The page already has a search
-       box in the navbar directly above this one, and two search fields stacked
-       reads as a mistake. So this one introduces itself, then gets out of the
-       way the moment you touch the wall, and comes back when you ask for it. */
-    ".opw-bar{overflow:hidden;transition:opacity .28s ease,width .34s cubic-bezier(.2,.8,.2,1),",
-      "padding .34s cubic-bezier(.2,.8,.2,1),border-radius .34s ease}",
-    ".opw-bar.opw-min{width:44px;padding:6px;border-radius:999px;cursor:pointer}",
-    ".opw-bar.opw-min .opw-shuffle{width:0;flex-basis:0;opacity:0;pointer-events:none}",
-    ".opw-bar.opw-min input{width:0;flex:0 0 0;padding:0;opacity:0;pointer-events:none}",
-    ".opw-bar.opw-min .opw-glass{color:var(--opw-blue);width:32px;flex:0 0 32px}",
-    ".opw-bar.opw-min:hover .opw-glass{color:var(--opw-pink)}",
+    /* Both of these leave with the navbar rather than folding into an icon. */
+    ".opw-bar,.opw-hint{transition:opacity .3s ease,transform .34s cubic-bezier(.2,.8,.2,1)}",
+    ".opw-bar.opw-away{opacity:0;transform:translateX(-50%) translateY(-22px);pointer-events:none}",
+    ".opw-hint.opw-away{opacity:0}",
     ".opw-icon{width:30px;height:30px;flex:0 0 30px;border-radius:9px;border:0;padding:0;",
       "background:var(--opw-blush-deep);color:var(--opw-blue);display:grid;place-items:center;",
       "cursor:pointer;transition:background .18s ease}",
@@ -323,6 +317,11 @@
      transforms on more things than you would expect. */
   var reader = document.createElement("div");
   reader.className = "opw-reader";
+  /* The site runs Lenis, which takes every wheel event and scrolls the page
+     with it. That is why the poem would not scroll — the wheel never reached
+     it. Lenis leaves alone anything inside data-lenis-prevent, so the card and
+     the wall opt out and handle their own scrolling and zooming. */
+  reader.setAttribute("data-lenis-prevent", "");
   reader.setAttribute("role", "dialog");
   reader.setAttribute("aria-modal", "true");
   reader.innerHTML =
@@ -368,14 +367,15 @@
   var MIN_S = 0.32, MAX_S = 2.4;
   var vw = 0, vh = 0;
 
-  /* How much of the top of the window something else is already sitting on.
-     Measured rather than written down, because the navbar is 119px on a desktop
-     and about half that on a phone, and a number typed in here would be wrong
-     at every width except the one it was measured at. Anything fixed to the top,
-     spanning most of the width, and shorter than two fifths of the window is
-     page furniture; taller than that and it is an overlay, not a bar. */
-  function topChrome() {
-    var ih = window.innerHeight || 800, iw = window.innerWidth || 1000, best = 0;
+  /* Which element is sitting on top of the window, and how tall it is. Kept
+     rather than just measured, because the wall now hides it while you are
+     using the wall. Anything fixed to the top, spanning most of the width, and
+     shorter than two fifths of the window is page furniture; taller than that
+     and it is an overlay, not a bar. */
+  var navEl = null, navH = 0;
+  function findChrome() {
+    var ih = window.innerHeight || 800, iw = window.innerWidth || 1000;
+    navEl = null; navH = 0;
     var kids = document.body ? document.body.children : [];
     for (var i = 0; i < kids.length; i++) {
       var el = kids[i];
@@ -385,28 +385,23 @@
       if (cs.display === "none" || cs.visibility === "hidden") continue;
       var b = el.getBoundingClientRect();
       if (b.top > 2 || b.height <= 0 || b.height > ih * 0.4 || b.width < iw * 0.6) continue;
-      if (b.bottom > best) best = b.bottom;
+      if (b.height > navH) { navH = Math.round(b.height); navEl = el; }
     }
-    return Math.round(best);
   }
 
   function resize() {
     var ih = window.innerHeight || 800;
-    var chrome = topChrome();
-    root.style.paddingTop = chrome + "px";     // start the wall under the navbar
+    findChrome();
+    /* The wall runs the whole window and the navbar floats on top of it, rather
+       than the wall starting underneath. Otherwise hiding the navbar would open
+       a strip of empty page above the cards. */
+    root.style.paddingTop = "0px";
+    bar.style.top = (navH + 14) + "px";
     var box = stage.getBoundingClientRect();
     vw = Math.round(box.width) || 1;
-    /* The wall takes the whole window below the navbar. Anything less and it
-       reads as a panel with a wall printed on it rather than a wall seen
-       through a window — the cards have to be cut off by the edge of the
-       screen, not by a box.
-
-       On a phone it stops short by one thumb. touch-action:none means a finger
-       that lands on the wall pans the wall and not the page, so without that
-       strip there would be nowhere left to touch that scrolls you down to the
-       footer, and the page would be a dead end. */
-    var strip = vw < 720 ? 54 : 0;
-    vh = Math.round(Math.max(300, ih - chrome - strip));
+    /* The whole window. There is no footer under this page any more, so there
+       is nothing to leave room for and nothing to scroll to. */
+    vh = Math.round(Math.max(300, ih));
     stage.style.height = vh + "px";
     lastKey = "";
     applyCam();
@@ -683,7 +678,7 @@
     cam.x -= dx; cam.y -= dy; tgt.x = cam.x; tgt.y = cam.y;
     vel = { x: dx, y: dy, t: performance.now() };
     last = { x: e.clientX, y: e.clientY };
-    hideHint(); foldBar(); markMoving();
+    hideHint(); away(true); markMoving();
     dirty = true;            // coalesce into the next frame instead of doing it now
     kick();
   });
@@ -712,51 +707,13 @@
     if (tile) open(+tile.getAttribute("data-i"), tile);
   }
 
-  /* The wheel zooms — which is the obvious thing, and what it did before this
-     lived inside a page. The problem it creates is that the wall fills the
-     window, so a wall that always eats the wheel is a wall you can never scroll
-     past to reach the footer.
-
-     So the wheel is decided once per gesture rather than once per event. A
-     gesture is a run of wheel events less than 140ms apart. At the start of one:
-     if the whole wall is on screen AND the zoom can still move the way you are
-     scrolling, the wall takes the gesture and zooms. Otherwise the page takes it
-     and scrolls, and it keeps it until you stop and start again.
-
-     What that gives you: scroll down over the wall and it zooms out until it
-     can't, then the next push of the wheel carries you to the footer. Scroll
-     back up and the page comes first, and only once the wall is fully in view
-     does the next gesture start zooming in again. Deciding per gesture rather
-     than per event is what stops it flipping between the two mid-flick.
-
-     ctrl+wheel always zooms, whatever the state — that is what a trackpad pinch
-     sends, and somebody pinching has been unambiguous about what they want. */
-  /* Far in the past, not zero: performance.now() starts near zero too, so a
-     wheel in the first second of the page would land inside its own cool-down. */
-  var gStamp = -1e9, gOwner = null, wallLast = -1e9;
-  var G_GAP = 400;        // a flick and its momentum tail are one gesture
-  var G_COOL = 700;       // and the page cannot take over straight after one
-
+  /* The wheel zooms, full stop. There is no page under this to scroll — the
+     wall is the whole screen and the footer is gone — so there is nothing left
+     to arbitrate between, and the two-owner scheme that used to live here was
+     solving a problem this page no longer has. */
   stage.addEventListener("wheel", function (e) {
-    var now = performance.now();
-    if (now - gStamp > G_GAP) {
-      var r = stage.getBoundingClientRect();
-      var whole = r.top >= -2 && r.bottom <= (window.innerHeight || 0) + 2;
-      var canZoom = e.deltaY < 0 ? tgt.s < MAX_S - 1e-3 : tgt.s > MIN_S + 1e-3;
-      /* The cool-down is the whole fix for the wall zooming out and the page
-         bolting to the footer in one motion. A trackpad flick arrives as a
-         burst and then a thinning tail, and the gaps in that tail grow past any
-         sensible gesture timeout — so the tail was being read as a fresh
-         gesture, finding the zoom already at its floor, and handing itself to
-         the page. Now the page has to wait for a real pause. */
-      var cooling = now - wallLast < G_COOL;
-      gOwner = (e.ctrlKey || (whole && canZoom) || cooling) ? "wall" : "page";
-    }
-    gStamp = now;
-    if (gOwner !== "wall") return;          // this one belongs to the page
-    wallLast = now;
     e.preventDefault();
-    hideHint(); foldBar(); fling = false;
+    hideHint(); away(true); fling = false;
     var f = Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.028 : 0.0022));
     tgt.s = Math.min(MAX_S, Math.max(MIN_S, tgt.s * f));
     var r = stage.getBoundingClientRect();
@@ -766,11 +723,6 @@
     kick();
   }, { passive: false });
 
-  /* A pinch has to hold whatever is between your fingers still — zoom about the
-     middle of the screen instead and the wall slides out from under you, which
-     is the other half of why this felt wrong. Work out the world point under
-     the midpoint, scale, then move the camera so that same point is back under
-     it. The midpoint moving is also how a two-finger drag pans, for free. */
   var pinch = null;
   function pspan(e) {
     var a = e.touches[0], b = e.touches[1];
@@ -795,7 +747,7 @@
     cam.x = tgt.x = wx - mx / ns;
     cam.y = tgt.y = wy - my / ns;
     pinch = p;
-    hideHint(); foldBar(); markMoving(); applyCam();
+    hideHint(); away(true); markMoving(); applyCam();
     dirty = true; kick();          // let the frame loop do the tiles, not this
   }, { passive: false });
   /* Lift one finger out of a pinch and the other is still on the glass, so it
@@ -829,34 +781,31 @@
   var hintGone = false;
   function hideHint() { if (hintGone) return; hintGone = true; hintEl.style.opacity = 0; }
 
-  /* The bar shows itself once, so somebody knows the wall can be searched, and
-     folds to the icon as soon as you start using the wall. It will not fold
-     while there is something typed in it — collapsing a search you are halfway
-     through is worse than the clash it was avoiding. */
-  var barMin = false;
-  function foldBar() {
-    if (barMin || qEl.value || document.activeElement === qEl) return;
-    barMin = true; bar.classList.add("opw-min");
+  /* The navbar and the search bar go away together while you are using the
+     wall, and come back when you stop or reach for the top of the screen. On
+     every other page the navbar does this off the page scroll; there is no page
+     scroll here, so the wall drives it instead — same effect, different cause.
+     The search bar stays a search bar throughout: folding it to an icon was
+     worse than the clash with the navbar's own search that it was avoiding. */
+  var awayNow = false, awayTimer = 0;
+  function away(on) {
+    if (on && (qEl.value || document.activeElement === qEl)) return;
+    clearTimeout(awayTimer);
+    if (on) awayTimer = setTimeout(function () { away(false); }, 1500);
+    if (on === awayNow) return;
+    awayNow = on;
+    bar.classList.toggle("opw-away", on);
+    hintEl.classList.toggle("opw-away", on);
+    if (navEl) {
+      navEl.style.transition = calm ? "none" : "transform .34s cubic-bezier(.2,.8,.2,1)";
+      navEl.style.transform = on ? "translateY(-" + (navH + 10) + "px)" : "";
+    }
   }
-  function openBar() {
-    barMin = false; bar.classList.remove("opw-min");
-    if (document.activeElement !== qEl) qEl.focus();
-  }
-  /* Folded, the field is still in the tab order — it is only zero-width, not
-     hidden — so tabbing to it has to unfold it rather than park the caret in
-     something invisible. */
-  qEl.addEventListener("focus", openBar);
-  bar.addEventListener("click", function (e) {
-    if (!barMin) return;
-    e.preventDefault(); e.stopPropagation();
-    openBar();
-  });
-  qEl.addEventListener("blur", function () {
-    if (!qEl.value) setTimeout(foldBar, 120);
-  });
-  qEl.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") { qEl.value = ""; apply(""); qEl.blur(); }
-  });
+  /* Reaching for the top of the screen is asking for the navbar back. */
+  window.addEventListener("pointermove", function (e) {
+    if (awayNow && e.clientY < Math.max(70, navH)) away(false);
+  }, { passive: true });
+  qEl.addEventListener("focus", function () { away(false); });
 
   var rt;
   window.addEventListener("resize", function () {
