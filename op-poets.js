@@ -94,6 +94,17 @@
       "color:#cbb0cd;transition:color .2s ease;pointer-events:none}",
     ".opw-glass svg{width:15px;height:15px}",
     ".opw-bar.opw-typing .opw-glass{color:var(--opw-blue)}",
+    /* Collapsed, the bar is just the magnifier. The page already has a search
+       box in the navbar directly above this one, and two search fields stacked
+       reads as a mistake. So this one introduces itself, then gets out of the
+       way the moment you touch the wall, and comes back when you ask for it. */
+    ".opw-bar{overflow:hidden;transition:opacity .28s ease,width .34s cubic-bezier(.2,.8,.2,1),",
+      "padding .34s cubic-bezier(.2,.8,.2,1),border-radius .34s ease}",
+    ".opw-bar.opw-min{width:44px;padding:6px;border-radius:999px;cursor:pointer}",
+    ".opw-bar.opw-min .opw-shuffle{width:0;flex-basis:0;opacity:0;pointer-events:none}",
+    ".opw-bar.opw-min input{width:0;flex:0 0 0;padding:0;opacity:0;pointer-events:none}",
+    ".opw-bar.opw-min .opw-glass{color:var(--opw-blue);width:32px;flex:0 0 32px}",
+    ".opw-bar.opw-min:hover .opw-glass{color:var(--opw-pink)}",
     ".opw-icon{width:30px;height:30px;flex:0 0 30px;border-radius:9px;border:0;padding:0;",
       "background:var(--opw-blush-deep);color:var(--opw-blue);display:grid;place-items:center;",
       "cursor:pointer;transition:background .18s ease}",
@@ -174,9 +185,9 @@
       "pointer-events:none}",
     ".opw-flipper.opw-landed .opw-back{pointer-events:auto}",
     ".opw-flipper.opw-landed .opw-front{pointer-events:none}",
-    ".opw-bhead{flex:0 0 auto;padding:42px 28px 14px}",
-    ".opw-who{font-family:var(--opw-read);font-size:14.5px;color:#000;line-height:1}",
-    ".opw-bhead h2{margin:9px 0 0;font-family:var(--opw-display);font-weight:400;font-size:31px;",
+    ".opw-bhead{flex:0 0 auto;padding:34px 28px 12px}",
+    ".opw-who{font-family:var(--opw-read);font-size:12.5px;color:#000;line-height:1}",
+    ".opw-bhead h2{margin:8px 0 0;font-family:var(--opw-display);font-weight:400;font-size:26px;",
       "line-height:1.06;color:var(--opw-blue)}",
     ".opw-bwrap{flex:1 1 auto;min-height:0;position:relative;display:flex}",
     ".opw-bwrap::after{content:\"\";position:absolute;left:0;right:7px;bottom:0;height:34px;",
@@ -194,7 +205,13 @@
       "background:rgba(74,12,70,.05);opacity:0;transition:opacity .22s ease;pointer-events:none}",
     ".opw-sbar.opw-show{opacity:1}",
     ".opw-sthumb{position:absolute;left:0;width:100%;min-height:24px;border-radius:99px;background:#dcb0e2}",
-    ".opw-body p{margin:0 0 1.05em}",
+        /* The size and the leading are set on the paragraphs, not just on the box.
+       The site has a global p{font-size:22px;line-height:25px}, and a direct
+       declaration on p beats anything inherited from an ancestor — so every
+       poem was rendering at the site's 22px no matter what this file said about
+       the container. It looked right in isolation and wrong on the page, which
+       is the whole reason to measure on the live site rather than a test page. */
+    ".opw-body p,.opw-body li{margin:0 0 1.05em;font-size:13px;line-height:1.58}",
     ".opw-body ul{margin:0 0 1.05em;padding:0;list-style:none}",
     ".opw-body li{margin:0}",
     ".opw-body.opw-perline p,.opw-body.opw-perline li{margin:0}",
@@ -246,8 +263,8 @@
         "overflow:hidden;text-overflow:ellipsis}",
       ".opw-flipwrap{height:min(84vh,712px)}",
       ".opw-x{top:12px;right:12px;width:34px;height:34px}",
-      ".opw-bhead{padding:34px 22px 12px}.opw-body{padding:14px 22px 20px}",
-      ".opw-bfoot{padding:12px 22px 15px}.opw-bhead h2{font-size:26px}}",
+      ".opw-bhead{padding:26px 22px 10px}.opw-body{padding:12px 22px 18px}",
+      ".opw-bfoot{padding:12px 22px 15px}.opw-bhead h2{font-size:22px}}",
     /* Sideways on a phone. The card is sized off the height and kept to the
        proportions of a real card, rather than filling the width and coming out
        squat — 452 by 712 is the shape everywhere else, so hold it here too. */
@@ -255,7 +272,7 @@
       ".opw-flipwrap{height:92vh;width:min(91vw,calc(92vh * 0.635))}",
       ".opw-bhead{padding:20px 17px 7px}.opw-bhead h2{font-size:21px}",
       ".opw-who{font-size:13px}",
-      ".opw-body{padding:9px 17px 13px;font-size:12px}",
+      ".opw-body{padding:9px 17px 13px}.opw-body p,.opw-body li{font-size:12px}",
       ".opw-bfoot{padding:9px 17px 11px}.opw-bfoot a{font-size:10.5px;padding:7px 10px}",
       ".opw-x{top:10px;right:10px}}",
     "@media (prefers-reduced-motion:reduce){.opw-tile,.opw-cardtilt{transition:none!important}}"
@@ -292,6 +309,11 @@
       zoomEl  = root.querySelector(".opw-zoom");
 
   var coarse = window.matchMedia && window.matchMedia("(pointer:coarse)").matches;
+  /* Someone who has asked their machine for less movement was previously only
+     getting the CSS transitions turned off, which on this page is almost none of
+     the movement. The cards being dealt, the card growing out of the tile, the
+     turn and the fling are all driven from script and all have to go too. */
+  var calm = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   hintEl.textContent = coarse
     ? "drag · pinch · tap to read"
     : "drag to pan · scroll to zoom · click a poet to read";
@@ -346,30 +368,45 @@
   var MIN_S = 0.32, MAX_S = 2.4;
   var vw = 0, vh = 0;
 
+  /* How much of the top of the window something else is already sitting on.
+     Measured rather than written down, because the navbar is 119px on a desktop
+     and about half that on a phone, and a number typed in here would be wrong
+     at every width except the one it was measured at. Anything fixed to the top,
+     spanning most of the width, and shorter than two fifths of the window is
+     page furniture; taller than that and it is an overlay, not a bar. */
+  function topChrome() {
+    var ih = window.innerHeight || 800, iw = window.innerWidth || 1000, best = 0;
+    var kids = document.body ? document.body.children : [];
+    for (var i = 0; i < kids.length; i++) {
+      var el = kids[i];
+      if (el === reader || el.tagName === "SCRIPT" || el.tagName === "STYLE") continue;
+      var cs = window.getComputedStyle(el);
+      if (cs.position !== "fixed" && cs.position !== "sticky") continue;
+      if (cs.display === "none" || cs.visibility === "hidden") continue;
+      var b = el.getBoundingClientRect();
+      if (b.top > 2 || b.height <= 0 || b.height > ih * 0.4 || b.width < iw * 0.6) continue;
+      if (b.bottom > best) best = b.bottom;
+    }
+    return Math.round(best);
+  }
+
   function resize() {
+    var ih = window.innerHeight || 800;
+    var chrome = topChrome();
+    root.style.paddingTop = chrome + "px";     // start the wall under the navbar
     var box = stage.getBoundingClientRect();
     vw = Math.round(box.width) || 1;
-    var ih = window.innerHeight || 800;
-    /* On a wide screen the wall takes everything from wherever it starts down
-       to the bottom of the window. Anything less and it reads as a panel with
-       a wall printed on it rather than a wall you are looking through a window
-       at — the cards have to be cut off by the edge of the screen, not by a
-       box. Measured rather than assumed, so it doesn't care how tall the navbar
-       above it happens to be.
+    /* The wall takes the whole window below the navbar. Anything less and it
+       reads as a panel with a wall printed on it rather than a wall seen
+       through a window — the cards have to be cut off by the edge of the
+       screen, not by a box.
 
-       On a phone it can't do that. touch-action:none means a finger that lands
-       on the wall pans the wall and not the page, so it takes about half the
-       screen and leaves somewhere to put a thumb when what you want is to
-       scroll past. Sized off the screen, or a tall phone gets the same short
-       strip as a small one. */
-    var above = Math.min(300, Math.max(0, box.top + (window.scrollY || 0)));
-    vh = vw < 720
-      ? Math.round(Math.max(360, Math.min(ih * 0.52, 520)))
-      : Math.round(Math.max(440, Math.min(ih - above, 1100)));
-    /* A phone turned sideways is wide enough to look like a desktop and short
-       enough that the desktop height runs off the bottom of the screen. Go by
-       how tall the window actually is, not how wide. */
-    if (ih < 620) vh = Math.round(Math.min(vh, Math.max(260, ih * 0.74)));
+       On a phone it stops short by one thumb. touch-action:none means a finger
+       that lands on the wall pans the wall and not the page, so without that
+       strip there would be nowhere left to touch that scrolls you down to the
+       footer, and the page would be a dead end. */
+    var strip = vw < 720 ? 54 : 0;
+    vh = Math.round(Math.max(300, ih - chrome - strip));
     stage.style.height = vh + "px";
     lastKey = "";
     applyCam();
@@ -468,7 +505,7 @@
 
   /* ------------------------------------------------------------- tiles */
   var reading = false;
-  var pool = {}, poolKeys = [], recycled = [], loaded = {};
+  var pool = {}, poolKeys = [], recycled = [], loaded = {}, broken = {};
   var lastKey = "", queue = [], queued = false, inFlight = 0;
 
   function populate() {
@@ -545,6 +582,13 @@
       im.addEventListener("load", function () {
         loaded[im.getAttribute("src")] = 1; im.classList.add("opw-on");
       });
+      /* A portrait that 404s used to sit at opacity 0 for ever — a bare pink
+         rectangle with a name under it, indistinguishable from one still
+         loading, and retried on every recycle. Remembered instead, so the card
+         reads as a card with no photo rather than a card that is stuck. */
+      im.addEventListener("error", function () {
+        broken[im.getAttribute("src")] = 1; im.style.display = "none";
+      });
       ph.appendChild(im);
       var cap = document.createElement("div");
       cap.className = "opw-cap";
@@ -552,6 +596,7 @@
       el.appendChild(ph); el.appendChild(cap);
       el._img = im; el._cap = cap;
     }
+    im.style.display = broken[p.d.img] ? "none" : "";
     if (loaded[p.d.img]) im.classList.add("opw-on");
     var base = "translate(" + X + "px," + Y + "px) rotate(" + p.rot + "deg)";
     el.style.transform = base;
@@ -567,7 +612,7 @@
      nearer the viewer. An earlier version had them growing in from smaller,
      which is why it read wrong: growing in says materialising, falling in says
      being dealt. */
-  var AR = { scale: 150, rot: 450, dur: 900, stagger: 20, on: 1 };
+  var AR = { scale: 150, rot: 450, dur: 900, stagger: 20, on: calm ? 0 : 1 };
 
   function settle(el, base, p, X, Y) {
     if (!AR.on || !el.animate) return;
@@ -609,9 +654,15 @@
      the wall would think two fingers were down and refuse to move at all. */
   var held = Object.create(null), down = 0;
   function grab(id) { if (!held[id]) { held[id] = 1; down++; } }
-  function release(id) { if (held[id]) { delete held[id]; down = Math.max(0, down - 1); } }
-  window.addEventListener("pointerup", function (e) { release(e.pointerId); });
-  window.addEventListener("pointercancel", function (e) { release(e.pointerId); });
+  /* unhold, not release. There is already a release() further up that returns a
+     tile to the pool, and two function declarations of the same name in the same
+     scope do not coexist — the later one silently replaces the earlier. Naming
+     this one release meant every attempt to recycle a tile was calling the
+     pointer bookkeeping with a grid key instead, so nothing was ever removed
+     from the DOM and nothing new could take its place. */
+  function unhold(id) { if (held[id]) { delete held[id]; down = Math.max(0, down - 1); } }
+  window.addEventListener("pointerup", function (e) { unhold(e.pointerId); });
+  window.addEventListener("pointercancel", function (e) { unhold(e.pointerId); });
 
   stage.addEventListener("pointerdown", function (e) {
     if (e.button !== 0 && e.pointerType === "mouse") return;
@@ -620,7 +671,7 @@
     dragging = true; moved = 0; fling = false; anchor = null;
     last = { x: e.clientX, y: e.clientY };
     downAt = { x: e.clientX, y: e.clientY, t: performance.now() };
-    vel = { x: 0, y: 0 };
+    vel = { x: 0, y: 0, t: 0 };
     stage.classList.add("opw-grab");
     kick();
   });
@@ -630,9 +681,9 @@
     var dx = (e.clientX - last.x) / cam.s, dy = (e.clientY - last.y) / cam.s;
     moved += Math.abs(e.clientX - last.x) + Math.abs(e.clientY - last.y);
     cam.x -= dx; cam.y -= dy; tgt.x = cam.x; tgt.y = cam.y;
-    vel = { x: dx, y: dy };
+    vel = { x: dx, y: dy, t: performance.now() };
     last = { x: e.clientX, y: e.clientY };
-    hideHint(); markMoving();
+    hideHint(); foldBar(); markMoving();
     dirty = true;            // coalesce into the next frame instead of doing it now
     kick();
   });
@@ -642,8 +693,12 @@
     dragging = false;
     stage.classList.remove("opw-grab");
     var quick = downAt && performance.now() - downAt.t < 550;
+    /* The fling has to come from a movement that was still happening when you
+       let go. Without the timestamp, dragging somewhere, resting a moment and
+       then lifting threw the wall across the screen on a velocity a second old. */
+    var live = vel.t && performance.now() - vel.t < 90;
     if (moved < 7 && quick) tapAt(e.clientX, e.clientY);
-    else if (Math.abs(vel.x) + Math.abs(vel.y) > 0.6) { fling = true; kick(); }
+    else if (live && !calm && Math.abs(vel.x) + Math.abs(vel.y) > 0.6) { fling = true; kick(); }
   }
   stage.addEventListener("pointerup", up);
   stage.addEventListener("pointercancel", function () {
@@ -676,7 +731,11 @@
 
      ctrl+wheel always zooms, whatever the state — that is what a trackpad pinch
      sends, and somebody pinching has been unambiguous about what they want. */
-  var gStamp = 0, gOwner = null, G_GAP = 140;
+  /* Far in the past, not zero: performance.now() starts near zero too, so a
+     wheel in the first second of the page would land inside its own cool-down. */
+  var gStamp = -1e9, gOwner = null, wallLast = -1e9;
+  var G_GAP = 400;        // a flick and its momentum tail are one gesture
+  var G_COOL = 700;       // and the page cannot take over straight after one
 
   stage.addEventListener("wheel", function (e) {
     var now = performance.now();
@@ -684,12 +743,20 @@
       var r = stage.getBoundingClientRect();
       var whole = r.top >= -2 && r.bottom <= (window.innerHeight || 0) + 2;
       var canZoom = e.deltaY < 0 ? tgt.s < MAX_S - 1e-3 : tgt.s > MIN_S + 1e-3;
-      gOwner = (e.ctrlKey || (whole && canZoom)) ? "wall" : "page";
+      /* The cool-down is the whole fix for the wall zooming out and the page
+         bolting to the footer in one motion. A trackpad flick arrives as a
+         burst and then a thinning tail, and the gaps in that tail grow past any
+         sensible gesture timeout — so the tail was being read as a fresh
+         gesture, finding the zoom already at its floor, and handing itself to
+         the page. Now the page has to wait for a real pause. */
+      var cooling = now - wallLast < G_COOL;
+      gOwner = (e.ctrlKey || (whole && canZoom) || cooling) ? "wall" : "page";
     }
     gStamp = now;
     if (gOwner !== "wall") return;          // this one belongs to the page
+    wallLast = now;
     e.preventDefault();
-    hideHint(); fling = false;
+    hideHint(); foldBar(); fling = false;
     var f = Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.028 : 0.0022));
     tgt.s = Math.min(MAX_S, Math.max(MIN_S, tgt.s * f));
     var r = stage.getBoundingClientRect();
@@ -728,11 +795,26 @@
     cam.x = tgt.x = wx - mx / ns;
     cam.y = tgt.y = wy - my / ns;
     pinch = p;
-    hideHint(); markMoving(); applyCam();
+    hideHint(); foldBar(); markMoving(); applyCam();
     dirty = true; kick();          // let the frame loop do the tiles, not this
   }, { passive: false });
+  /* Lift one finger out of a pinch and the other is still on the glass, so it
+     should carry on panning. dragging was cleared when the second finger landed
+     and nothing re-armed it, which left the wall ignoring a finger that was
+     visibly still touching it. moved is set high so this tail is never mistaken
+     for a tap on whatever is underneath. */
   stage.addEventListener("touchend", function (e) {
-    if (e.touches.length < 2) pinch = null;
+    if (e.touches.length >= 2) return;
+    if (pinch && e.touches.length === 1) {
+      var t = e.touches[0];
+      last = { x: t.clientX, y: t.clientY };
+      vel = { x: 0, y: 0, t: 0 };
+      moved = 999;
+      dragging = true;
+      stage.classList.add("opw-grab");
+      kick();
+    }
+    pinch = null;
   });
 
   function zoomBy(f) {
@@ -746,6 +828,35 @@
 
   var hintGone = false;
   function hideHint() { if (hintGone) return; hintGone = true; hintEl.style.opacity = 0; }
+
+  /* The bar shows itself once, so somebody knows the wall can be searched, and
+     folds to the icon as soon as you start using the wall. It will not fold
+     while there is something typed in it — collapsing a search you are halfway
+     through is worse than the clash it was avoiding. */
+  var barMin = false;
+  function foldBar() {
+    if (barMin || qEl.value || document.activeElement === qEl) return;
+    barMin = true; bar.classList.add("opw-min");
+  }
+  function openBar() {
+    barMin = false; bar.classList.remove("opw-min");
+    if (document.activeElement !== qEl) qEl.focus();
+  }
+  /* Folded, the field is still in the tab order — it is only zero-width, not
+     hidden — so tabbing to it has to unfold it rather than park the caret in
+     something invisible. */
+  qEl.addEventListener("focus", openBar);
+  bar.addEventListener("click", function (e) {
+    if (!barMin) return;
+    e.preventDefault(); e.stopPropagation();
+    openBar();
+  });
+  qEl.addEventListener("blur", function () {
+    if (!qEl.value) setTimeout(foldBar, 120);
+  });
+  qEl.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { qEl.value = ""; apply(""); qEl.blur(); }
+  });
 
   var rt;
   window.addEventListener("resize", function () {
@@ -797,7 +908,7 @@
      rather than an animation. Click-driven only, so nothing can get stuck
      half-turned, and the poem does not become scrollable until it has landed. */
   var cur = -1, yaw = 0, spinning = false, tFrom = 0, tTo = 0, tStart = 0;
-  var TURN_MS = 620;
+  var TURN_MS = calm ? 1 : 620;
   function easeInOut(k) { return k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; }
 
   function paint() {
@@ -852,7 +963,7 @@
     }
     el.classList.toggle("opw-perline", perline);
     if (perline) Array.prototype.forEach.call(blocks, function (b) {
-      if (!b.textContent.replace(/ /g, " ").trim()) b.classList.add("opw-brk");
+      if (!b.textContent.replace(/\u00a0/g, " ").trim()) b.classList.add("opw-brk");
     });
   }
 
@@ -911,7 +1022,7 @@
   }
 
   function playOpen(fromEl) {
-    if (!flipwrap.animate || !fromEl) return;
+    if (calm || !flipwrap.animate || !fromEl) return;
     var D = 520;
     var to = flipwrap.getBoundingClientRect();
     var r = fromEl.getBoundingClientRect();
@@ -920,13 +1031,13 @@
     var dy = (r.top + r.height / 2) - (to.top + to.height / 2);
     flipwrap.animate([
       { transform: "translate(" + dx + "px," + dy + "px) scale(" + s + ") rotate(" +
-        (tileAngle(fromEl) * cam.s) + "deg)", opacity: .45 },
+        tileAngle(fromEl) + "deg)", opacity: .45 },
       { transform: "none", opacity: 1 }
     ], { duration: D, easing: EASE });
     reader.animate([{ opacity: 0 }, { opacity: 1 }], { duration: Math.round(D * .75), easing: "ease-out" });
   }
 
-  var htmlOverflow = "";
+  var htmlOverflow = "", cameFrom = null;
   function open(i, fromEl) {
     if (i < 0 || i >= view.length) return;
     cur = i;
@@ -948,6 +1059,15 @@
     bfoot.classList.toggle("opw-solo", !d.interview);
     if (d.interview) viewLink.href = SITE + "/interviews/" + d.interview;
 
+    /* The next and previous portraits, fetched now so stepping through with the
+       arrows or a swipe doesn't show a blank face while the photo arrives. */
+    [1, -1].forEach(function (n) {
+      var near = view[(i + n + view.length) % view.length];
+      if (near && near.img && !loaded[near.img] && !broken[near.img]) {
+        var pre = new Image(); pre.src = near.img;
+      }
+    });
+
     var wasOpen = reader.classList.contains("opw-open");
     reading = true;
     layer.classList.add("opw-blur");
@@ -955,9 +1075,17 @@
     if (!wasOpen) {
       htmlOverflow = document.documentElement.style.overflow;
       document.documentElement.style.overflow = "hidden";
+      cameFrom = document.activeElement;
     }
     reader.classList.add("opw-open");
-    if (!wasOpen) playOpen(fromEl);
+    if (!wasOpen) {
+      playOpen(fromEl);
+      /* Somewhere inside the dialog, so Escape and Tab belong to the card
+         rather than walking the page underneath it. Only on the way in —
+         stepping between poets must not keep stealing the focus back. */
+      var x = reader.querySelector(".opw-x");
+      if (x && x.focus) { try { x.focus({ preventScroll: true }); } catch (err) { x.focus(); } }
+    }
     requestAnimationFrame(function () { fade(); syncBar(); });
   }
 
@@ -969,6 +1097,10 @@
     reading = false;
     sbar.classList.remove("opw-show");
     cur = -1;
+    if (cameFrom && cameFrom.focus) {
+      try { cameFrom.focus({ preventScroll: true }); } catch (err) { cameFrom.focus(); }
+    }
+    cameFrom = null;
     lastKey = "";               // catch up on anything that moved while we were away
     populate();
   }
@@ -1005,12 +1137,20 @@
     else if (e.key === " ") { e.preventDefault(); turn(); }
   });
 
-  var tsx = null;
-  reader.addEventListener("touchstart", function (e) { tsx = e.touches[0].clientX; }, { passive: true });
+  /* A swipe has to be more sideways than it is up and down, and it cannot have
+     scrolled the poem. Reading a long poem on a phone with a thumb is a diagonal
+     movement, and it was stepping to the next poet mid-stanza. */
+  var tsx = null, tsy = null, tsTop = 0;
+  reader.addEventListener("touchstart", function (e) {
+    tsx = e.touches[0].clientX; tsy = e.touches[0].clientY; tsTop = bodyEl.scrollTop;
+  }, { passive: true });
   reader.addEventListener("touchend", function (e) {
     if (tsx === null) return;
-    var dx = e.changedTouches[0].clientX - tsx; tsx = null;
-    if (Math.abs(dx) > 64) step(dx < 0 ? 1 : -1);
+    var dx = e.changedTouches[0].clientX - tsx;
+    var dy = e.changedTouches[0].clientY - tsy;
+    var scrolled = bodyEl.scrollTop !== tsTop;
+    tsx = tsy = null;
+    if (!scrolled && Math.abs(dx) > 64 && Math.abs(dx) > Math.abs(dy) * 1.6) step(dx < 0 ? 1 : -1);
   }, { passive: true });
 
   /* ------------------------------------------------ keep the page honest
@@ -1022,7 +1162,7 @@
     var host = document.querySelector(".op-poets-index-inner");
     if (!host) return;
     var names = DATA.slice().sort(function (a, b) {
-      return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1;
+      return a.name.localeCompare(b.name);   // Éireann belongs with the Es
     });
     var html = names.map(function (d) {
       return '<li class="op-poets-item"><a class="op-poets-link" href="/poems/' + d.slug + '">' +
