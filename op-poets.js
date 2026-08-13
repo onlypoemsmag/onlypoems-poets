@@ -245,12 +245,13 @@
        running into them, and the card has to leave room at the top for the
        close button — at 740px tall it was landing on the poet's face. */
     "@media (max-width:640px){.opw-nav{display:none}",
-      ".opw-bar{width:min(92%,460px);max-width:none;top:9px;padding:4px;border-radius:12px}",
+      ".opw-bar{width:auto;max-width:92%;top:9px;padding:4px;border-radius:12px}",
       /* 16px, and it has to be 16px. Under that, iOS zooms the whole page in
          the moment the field is focused and leaves you stranded there — which
          reads as the wall going haywire rather than as the keyboard opening.
          The height comes back off the padding instead. */
-      ".opw-bar input{width:100%;flex:1 1 auto;min-width:0;font-size:16px;padding:4px 8px}",
+      ".opw-bar input{width:min(62vw,224px);flex:0 1 auto;min-width:0;font-size:16px;padding:4px 6px}",
+      ".opw-bar .opw-probe{position:absolute;visibility:hidden;white-space:pre;pointer-events:none}",
       ".opw-icon{width:28px;height:28px;flex:0 0 28px;border-radius:8px}",
       ".opw-glass{width:26px;height:26px}",
       ".opw-hint{bottom:64px;font-size:11.5px;padding:6px 13px;max-width:92%;",
@@ -403,9 +404,40 @@
        is nothing to leave room for and nothing to scroll to. */
     vh = Math.round(Math.max(300, ih));
     stage.style.height = vh + "px";
+    fitQuery();
     lastKey = "";
     applyCam();
   }
+
+  /* The field is exactly as wide as the question it asks, plus a little air.
+     Measured by putting the question INTO the field and reading how wide the
+     field wants to be — a span with the same font declared on it came out
+     thirty pixels short, because it is not laying the text out the way an input
+     does. And measured at all, rather than written into the stylesheet, because
+     the width of that sentence depends on a webfont that may not have arrived
+     yet: a number typed in here is either clipping it or leaving a gap,
+     depending on which font is standing in at the time. */
+  function fitQuery() {
+    if (vw >= 720) { qEl.style.width = ""; return; }
+    var keep = qEl.value;
+    qEl.style.padding = "0";           // measure the text, not the text plus its box
+    qEl.style.width = "10px";
+    qEl.value = qEl.placeholder || "";
+    var need = qEl.scrollWidth;
+    qEl.value = keep;
+    qEl.style.padding = "";
+    if (!need) return;
+    var cs = window.getComputedStyle(qEl);
+    /* Under border-box — which the site sets globally — the padding is inside
+       the width, so it has to be added back or the sentence loses its last
+       character. Under content-box it is already outside and must not be. */
+    var pad = cs.boxSizing === "border-box"
+      ? (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0) +
+        (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.borderRightWidth) || 0)
+      : 0;
+    qEl.style.width = Math.round(Math.min(vw * 0.68, need + pad + 14)) + "px";
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitQuery, function () {});
 
   /* ------------------------------------------------------------ layout */
   var BW = 0, BH = 0, placed = [], wrapOn = true, seedSalt = 0;
@@ -639,6 +671,16 @@
      Pointer capture would retarget the click to the stage and swallow taps on
      a tile, so the tap is hit-tested by hand on pointerup instead. */
   var dragging = false, moved = 0, last = null, vel = { x: 0, y: 0 }, fling = false, downAt = null;
+  /* On a phone the vertical swipe is the scroll — there is no wheel to read, and
+     a finger dragged up or down is the same movement a page is scrolled with.
+     It also happens to be how the wall is panned, so this only fires on a drag
+     that is decidedly vertical and has gone somewhere, and it decides once per
+     drag rather than tracking the finger, which would leave the bars flickering
+     in and out the whole time you were moving around. A finger pushed UP is the
+     page being scrolled down, so that is the one that puts them away — the same
+     way round as the wheel, and as the navbar everywhere else. A mouse is
+     exempt: dragging with a mouse is not scrolling with one. */
+  var swipe = 1;
   /* Pointer events fire for every finger, so on a phone the first finger of a
      pinch was still panning the wall while the two of them were zooming it.
      That is what made it lurch. Count the fingers; pan only while there is one.
@@ -664,6 +706,7 @@
     grab(e.pointerId);
     if (down > 1) { dragging = false; fling = false; stage.classList.remove("opw-grab"); return; }
     dragging = true; moved = 0; fling = false; anchor = null;
+    swipe = e.pointerType === "mouse" ? 1 : 0;   // 0 = undecided, 1 = spent
     last = { x: e.clientX, y: e.clientY };
     downAt = { x: e.clientX, y: e.clientY, t: performance.now() };
     vel = { x: 0, y: 0, t: 0 };
@@ -677,6 +720,13 @@
     moved += Math.abs(e.clientX - last.x) + Math.abs(e.clientY - last.y);
     cam.x -= dx; cam.y -= dy; tgt.x = cam.x; tgt.y = cam.y;
     vel = { x: dx, y: dy, t: performance.now() };
+    if (!swipe && downAt) {
+      var ty = e.clientY - downAt.y, tx = e.clientX - downAt.x;
+      if (Math.abs(ty) > 50 && Math.abs(ty) > Math.abs(tx) * 1.5) {
+        swipe = 1;
+        away(ty < 0);
+      }
+    }
     last = { x: e.clientX, y: e.clientY };
     hideHint(); markMoving();
     dirty = true;            // coalesce into the next frame instead of doing it now
@@ -714,11 +764,12 @@
   stage.addEventListener("wheel", function (e) {
     e.preventDefault();
     hideHint(); fling = false;
-    /* Scrolling up takes you in and puts the bars away; scrolling down pulls
-       you out and brings them back. One rule, one input, and reversible by the
-       same movement that caused it — which is what a timer could never be.
-       Dragging and pinching leave them exactly where they are. */
-    away(e.deltaY < 0);
+    /* Scrolling down puts the bars away, scrolling up brings them back — the
+       same way round as the navbar on every other page, so the habit carries.
+       One rule, one input, reversible by the same movement that caused it,
+       which is what a timer could never be. Dragging and pinching leave them
+       exactly where they are. */
+    away(e.deltaY > 0);
     var f = Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.028 : 0.0022));
     tgt.s = Math.min(MAX_S, Math.max(MIN_S, tgt.s * f));
     var r = stage.getBoundingClientRect();
@@ -767,6 +818,7 @@
       last = { x: t.clientX, y: t.clientY };
       vel = { x: 0, y: 0, t: 0 };
       moved = 999;
+      swipe = 1;
       dragging = true;
       stage.classList.add("opw-grab");
       kick();
