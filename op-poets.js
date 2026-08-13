@@ -45,7 +45,12 @@
       "height:1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;",
       "white-space:nowrap!important;margin:-1px!important;padding:0!important;border:0!important}",
 
+    /* Nothing on the wall is text you would want to copy, and without this a
+       drag sweeps a selection across every card it crosses and leaves the whole
+       thing highlighted blue. The poem is outside the stage, so it stays
+       selectable — that one people do want to copy. */
     ".opw-stage{position:relative;width:100%;overflow:hidden;cursor:grab;touch-action:none;",
+      "user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;",
       "background:var(--opw-blush);",
       "background-image:radial-gradient(120% 90% at 50% -10%,#fffdff 0%,rgba(255,253,255,0) 60%)}",
     ".opw-stage.opw-grab{cursor:grabbing}",
@@ -60,6 +65,7 @@
     ".opw-tile:hover::after{border-color:var(--opw-pink)}",
     ".opw-ph{position:relative;width:100%;border-radius:6px;overflow:hidden;background:#f6e9fa}",
     ".opw-tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;",
+      "-webkit-user-drag:none;user-drag:none;",
       "opacity:0;transition:opacity .4s ease}",
     /* !important, and it has to be. The site's reveal script puts a Web
        Animation on every image that holds it at opacity 0 until it scrolls into
@@ -81,6 +87,7 @@
       "border:1px solid rgba(74,12,70,.08);box-shadow:0 14px 34px -18px rgba(74,12,70,.45);",
       "padding:6px;max-width:min(92%,460px);transition:opacity .28s ease}",
     ".opw-bar input{border:0;outline:0;background:transparent;font-family:var(--opw-ui);",
+      "user-select:text;-webkit-user-select:text;",
       "font-size:14px;color:var(--opw-ink);padding:6px 10px;width:min(56vw,318px);margin:0}",
     ".opw-bar input::placeholder{color:#b39ab3}",
     ".opw-glass{flex:0 0 auto;display:grid;place-items:center;width:30px;height:30px;",
@@ -178,7 +185,7 @@
     ".opw-bwrap.opw-more::after{opacity:1}",
     ".opw-flipper.opw-landed .opw-body{overflow-y:auto}",
     ".opw-body{flex:1 1 auto;min-height:0;overflow:hidden;overscroll-behavior:contain;",
-      "padding:14px 28px 22px;font-family:var(--opw-read);font-size:15px;line-height:1.52;",
+      "padding:14px 28px 22px;font-family:var(--opw-read);font-size:13px;line-height:1.58;",
       "color:#000;-webkit-overflow-scrolling:touch;scrollbar-width:none}",
     ".opw-body::-webkit-scrollbar{width:0;height:0;display:none}",
     /* macOS hides the real scrollbar until you are already scrolling, which is
@@ -194,7 +201,7 @@
     ".opw-body.opw-perline ul{margin:0}",
     ".opw-body.opw-perline p.opw-brk,.opw-body.opw-perline li.opw-brk{height:1.05em}",
     ".opw-body blockquote{margin:0 0 1.35em;padding:0 0 0 1.7em;border:0;font-style:italic;",
-      "font-size:13px;line-height:1.5}",
+      "font-size:.87em;line-height:1.5}",
     ".opw-body a{color:var(--opw-blue);text-decoration:none;border-bottom:1px solid var(--opw-wash)}",
     ".opw-bfoot{flex:0 0 auto;padding:13px 28px 17px;border-top:1px solid rgba(74,12,70,.08);",
       "display:flex;align-items:center;justify-content:space-between;gap:12px}",
@@ -227,8 +234,14 @@
        running into them, and the card has to leave room at the top for the
        close button — at 740px tall it was landing on the poet's face. */
     "@media (max-width:640px){.opw-nav{display:none}",
-      ".opw-bar{width:min(92%,460px);max-width:none}",
-      ".opw-bar input{width:100%;flex:1 1 auto;min-width:0}",
+      ".opw-bar{width:min(92%,460px);max-width:none;top:9px;padding:4px;border-radius:12px}",
+      /* 16px, and it has to be 16px. Under that, iOS zooms the whole page in
+         the moment the field is focused and leaves you stranded there — which
+         reads as the wall going haywire rather than as the keyboard opening.
+         The height comes back off the padding instead. */
+      ".opw-bar input{width:100%;flex:1 1 auto;min-width:0;font-size:16px;padding:4px 8px}",
+      ".opw-icon{width:28px;height:28px;flex:0 0 28px;border-radius:8px}",
+      ".opw-glass{width:26px;height:26px}",
       ".opw-hint{bottom:64px;font-size:11.5px;padding:6px 13px;max-width:92%;",
         "overflow:hidden;text-overflow:ellipsis}",
       ".opw-flipwrap{height:min(84vh,712px)}",
@@ -242,7 +255,7 @@
       ".opw-flipwrap{height:92vh;width:min(91vw,calc(92vh * 0.635))}",
       ".opw-bhead{padding:20px 17px 7px}.opw-bhead h2{font-size:21px}",
       ".opw-who{font-size:13px}",
-      ".opw-body{padding:9px 17px 13px;font-size:14px}",
+      ".opw-body{padding:9px 17px 13px;font-size:12px}",
       ".opw-bfoot{padding:9px 17px 11px}.opw-bfoot a{font-size:10.5px;padding:7px 10px}",
       ".opw-x{top:10px;right:10px}}",
     "@media (prefers-reduced-motion:reduce){.opw-tile,.opw-cardtilt{transition:none!important}}"
@@ -281,7 +294,7 @@
   var coarse = window.matchMedia && window.matchMedia("(pointer:coarse)").matches;
   hintEl.textContent = coarse
     ? "drag · pinch · tap to read"
-    : "drag to pan · pinch or ctrl-scroll to zoom · click a poet to read";
+    : "drag to pan · scroll to zoom · click a poet to read";
 
   /* The reader is appended to the body, not the container: a fixed element
      inside a transformed ancestor stops being fixed, and Webflow puts
@@ -586,9 +599,24 @@
      Pointer capture would retarget the click to the stage and swallow taps on
      a tile, so the tap is hit-tested by hand on pointerup instead. */
   var dragging = false, moved = 0, last = null, vel = { x: 0, y: 0 }, fling = false, downAt = null;
+  /* Pointer events fire for every finger, so on a phone the first finger of a
+     pinch was still panning the wall while the two of them were zooming it.
+     That is what made it lurch. Count the fingers; pan only while there is one.
+
+     Counted by id and released on the window, not the wall. A count that only
+     ever went down when you let go INSIDE the wall would strand itself the
+     first time somebody dragged off the edge and released — and from then on
+     the wall would think two fingers were down and refuse to move at all. */
+  var held = Object.create(null), down = 0;
+  function grab(id) { if (!held[id]) { held[id] = 1; down++; } }
+  function release(id) { if (held[id]) { delete held[id]; down = Math.max(0, down - 1); } }
+  window.addEventListener("pointerup", function (e) { release(e.pointerId); });
+  window.addEventListener("pointercancel", function (e) { release(e.pointerId); });
 
   stage.addEventListener("pointerdown", function (e) {
     if (e.button !== 0 && e.pointerType === "mouse") return;
+    grab(e.pointerId);
+    if (down > 1) { dragging = false; fling = false; stage.classList.remove("opw-grab"); return; }
     dragging = true; moved = 0; fling = false; anchor = null;
     last = { x: e.clientX, y: e.clientY };
     downAt = { x: e.clientX, y: e.clientY, t: performance.now() };
@@ -598,7 +626,7 @@
   });
 
   stage.addEventListener("pointermove", function (e) {
-    if (!dragging) return;
+    if (!dragging || down > 1) return;
     var dx = (e.clientX - last.x) / cam.s, dy = (e.clientY - last.y) / cam.s;
     moved += Math.abs(e.clientX - last.x) + Math.abs(e.clientY - last.y);
     cam.x -= dx; cam.y -= dy; tgt.x = cam.x; tgt.y = cam.y;
@@ -629,11 +657,37 @@
     if (tile) open(+tile.getAttribute("data-i"), tile);
   }
 
-  /* Plain scrolling belongs to the page — this sits in the middle of one, and
-     a wall that eats the wheel is a wall you cannot scroll past. ctrl+wheel is
-     also what a trackpad pinch sends, so the gesture people reach for works. */
+  /* The wheel zooms — which is the obvious thing, and what it did before this
+     lived inside a page. The problem it creates is that the wall fills the
+     window, so a wall that always eats the wheel is a wall you can never scroll
+     past to reach the footer.
+
+     So the wheel is decided once per gesture rather than once per event. A
+     gesture is a run of wheel events less than 140ms apart. At the start of one:
+     if the whole wall is on screen AND the zoom can still move the way you are
+     scrolling, the wall takes the gesture and zooms. Otherwise the page takes it
+     and scrolls, and it keeps it until you stop and start again.
+
+     What that gives you: scroll down over the wall and it zooms out until it
+     can't, then the next push of the wheel carries you to the footer. Scroll
+     back up and the page comes first, and only once the wall is fully in view
+     does the next gesture start zooming in again. Deciding per gesture rather
+     than per event is what stops it flipping between the two mid-flick.
+
+     ctrl+wheel always zooms, whatever the state — that is what a trackpad pinch
+     sends, and somebody pinching has been unambiguous about what they want. */
+  var gStamp = 0, gOwner = null, G_GAP = 140;
+
   stage.addEventListener("wheel", function (e) {
-    if (!e.ctrlKey) return;
+    var now = performance.now();
+    if (now - gStamp > G_GAP) {
+      var r = stage.getBoundingClientRect();
+      var whole = r.top >= -2 && r.bottom <= (window.innerHeight || 0) + 2;
+      var canZoom = e.deltaY < 0 ? tgt.s < MAX_S - 1e-3 : tgt.s > MIN_S + 1e-3;
+      gOwner = (e.ctrlKey || (whole && canZoom)) ? "wall" : "page";
+    }
+    gStamp = now;
+    if (gOwner !== "wall") return;          // this one belongs to the page
     e.preventDefault();
     hideHint(); fling = false;
     var f = Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.028 : 0.0022));
@@ -645,24 +699,41 @@
     kick();
   }, { passive: false });
 
+  /* A pinch has to hold whatever is between your fingers still — zoom about the
+     middle of the screen instead and the wall slides out from under you, which
+     is the other half of why this felt wrong. Work out the world point under
+     the midpoint, scale, then move the camera so that same point is back under
+     it. The midpoint moving is also how a two-finger drag pans, for free. */
   var pinch = null;
-  function pdist(e) {
+  function pspan(e) {
     var a = e.touches[0], b = e.touches[1];
-    return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+    return { d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY),
+             x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2 };
   }
   stage.addEventListener("touchstart", function (e) {
-    if (e.touches.length === 2) pinch = pdist(e);
+    if (e.touches.length === 2) {
+      pinch = pspan(e);
+      dragging = false; fling = false; anchor = null;
+      stage.classList.remove("opw-grab");
+    }
   }, { passive: true });
   stage.addEventListener("touchmove", function (e) {
-    if (e.touches.length === 2 && pinch) {
-      e.preventDefault();
-      var d = pdist(e);
-      tgt.s = Math.min(MAX_S, Math.max(MIN_S, tgt.s * (d / pinch)));
-      cam.s = tgt.s; pinch = d;
-      applyCam(); populate(); markMoving();
-    }
+    if (e.touches.length !== 2 || !pinch) return;
+    e.preventDefault();
+    var p = pspan(e), r = stage.getBoundingClientRect();
+    var mx = p.x - r.left - vw / 2, my = p.y - r.top - vh / 2;
+    var wx = cam.x + mx / cam.s, wy = cam.y + my / cam.s;
+    var ns = Math.min(MAX_S, Math.max(MIN_S, cam.s * (p.d / (pinch.d || p.d))));
+    cam.s = tgt.s = ns;
+    cam.x = tgt.x = wx - mx / ns;
+    cam.y = tgt.y = wy - my / ns;
+    pinch = p;
+    hideHint(); markMoving(); applyCam();
+    dirty = true; kick();          // let the frame loop do the tiles, not this
   }, { passive: false });
-  stage.addEventListener("touchend", function () { pinch = null; });
+  stage.addEventListener("touchend", function (e) {
+    if (e.touches.length < 2) pinch = null;
+  });
 
   function zoomBy(f) {
     fling = false;
