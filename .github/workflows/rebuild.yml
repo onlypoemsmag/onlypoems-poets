@@ -1,0 +1,63 @@
+name: Rebuild the wall
+# Runs every morning, and whenever you press Run workflow.
+# Press it after publishing a poet if you don't want to wait for the morning.
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Rebuild wall.json from the CMS
+        id: build
+        env:
+          WEBFLOW_TOKEN: ${{ secrets.WEBFLOW_TOKEN }}
+        run: |
+          set -o pipefail
+          python3 build_poets.py 2>&1 | tee /tmp/build.log
+        continue-on-error: true
+      - name: Write the run summary
+        if: always()
+        run: |
+          {
+            echo "### Wall rebuild"
+            echo ""
+            echo '```'
+            cat /tmp/build.log 2>/dev/null || echo "the build produced no output"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Commit whatever moved
+        id: commit
+        if: always()
+        run: |
+          git config user.name  "onlypoems-poets"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add wall.json left-off.md
+          if git diff --cached --quiet; then
+            echo "nothing changed"
+            echo "moved=no" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "Rebuild the wall from the CMS"
+            git push
+            echo "moved=yes" >> "$GITHUB_OUTPUT"
+          fi
+      # The page reads wall.json off the main branch, and jsDelivr holds a
+      # branch for twelve hours. Without this a poet published on Tuesday
+      # could wait until Wednesday to appear, having already been rebuilt.
+      - name: Let the CDN know
+        if: steps.commit.outputs.moved == 'yes'
+        run: |
+          curl -sS "https://purge.jsdelivr.net/gh/onlypoemsmag/onlypoems-poets@main/wall.json" || true
+      # Fails last, so the report is committed either way.
+      - name: Surface a build failure
+        if: steps.build.outcome == 'failure'
+        run: |
+          echo "the rebuild failed — see the log above" >&2
+          exit 1
