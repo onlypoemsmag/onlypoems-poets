@@ -81,6 +81,11 @@
     /* far out the captions are unreadable anyway — skip the text layout */
     ".opw-tiny .opw-cap{visibility:hidden}",
     ".opw-tiny .opw-tile{box-shadow:0 5px 12px -8px rgba(74,12,70,.35)}",
+        /* The blur goes on the stage, which is exactly one window big, and never on
+       the layer. The layer's paint area is the whole wall in world space — zoomed
+       out that is thousands of pixels across, and blurring it made opening and
+       closing a card crawl, while zoomed in on a handful of cards it was fine.
+       Same picture, constant cost. */
     ".opw-blur{filter:blur(10px) saturate(1.06);transition:filter .28s ease}",
 
     ".opw-bar{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:6;",
@@ -206,7 +211,14 @@
        the container. It looked right in isolation and wrong on the page, which
        is the whole reason to measure on the live site rather than a test page. */
     ".opw-body p,.opw-body li{margin:0 0 1.05em;font-size:13px;line-height:1.58}",
-    ".opw-body ul{margin:0 0 1.05em;padding:0;list-style:none}",
+        ".opw-body ul,.opw-body ol{margin:0 0 1.05em;padding:0;list-style:none}",
+    /* The poem starts where the poet's name starts. Rich text arrives wrapped in
+       whatever the CMS felt like — lists, nested divs — and the site's own styles
+       indent some of those, which left the poem sitting a centimetre inside its
+       own title. Everything at the top level of the body is pulled flush; the
+       epigraph keeps its indent below, because that one is meant. */
+    ".opw-body>p,.opw-body>ul,.opw-body>ol,.opw-body>div,.opw-body>figure,.opw-body li",
+      "{margin-left:0!important;padding-left:0!important;text-indent:0!important}",
     ".opw-body li{margin:0}",
     ".opw-body.opw-perline p,.opw-body.opw-perline li{margin:0}",
     ".opw-body.opw-perline ul{margin:0}",
@@ -933,9 +945,26 @@
     flipper.classList.remove("opw-landed");   // mid-turn it is an object, not a page
     requestAnimationFrame(spin);
   }
-  function turn() {
+  /* Which way it turns is decided by where you touched it: push the right half
+     and the right edge goes away from you, push the left half and the left edge
+     does. yaw is unbounded, so it can keep going either way for ever and still
+     land on a whole face.
+
+     No special case for the poem side, though it looks like there should be one.
+     The card is mirrored at half a turn, so the instinct is that the sign has to
+     flip with it — but work out which edge recedes as yaw grows and it is the
+     screen's right-hand edge at both 0 and 180. Inverting it made the card turn
+     back the way it came exactly half the time. */
+  function side(e) {
+    if (!e || e.clientX == null) return 1;
+    var r = flipwrap.getBoundingClientRect();
+    return e.clientX < r.left + r.width / 2 ? -1 : 1;
+  }
+
+  function turn(dir) {
     if (spinning) return;                     // one turn at a time
-    tFrom = yaw; tTo = Math.round(yaw / 180) * 180 + 180;
+    dir = dir < 0 ? -1 : 1;
+    tFrom = yaw; tTo = Math.round(yaw / 180) * 180 + 180 * dir;
     tStart = performance.now(); spinning = true;
     requestAnimationFrame(spin);
   }
@@ -1072,7 +1101,7 @@
     var wasOpen = reader.classList.contains("opw-open");
     if (!wasOpen) openedFrom = fromEl || null;
     reading = true;
-    layer.classList.add("opw-blur");
+    stage.classList.add("opw-blur");
     bar.classList.add("opw-off"); zoomEl.classList.add("opw-off"); hintEl.classList.add("opw-off");
     if (!wasOpen) {
       htmlOverflow = document.documentElement.style.overflow;
@@ -1133,7 +1162,7 @@
     shutting = true;
     var back = tileFor(cur) || openedFrom;
     /* The wall comes back into focus as the card leaves, not after it. */
-    layer.classList.remove("opw-blur");
+    stage.classList.remove("opw-blur");
     bar.classList.remove("opw-off"); zoomEl.classList.remove("opw-off"); hintEl.classList.remove("opw-off");
     sbar.classList.remove("opw-show");
     playShut(back, function () {
@@ -1153,7 +1182,7 @@
   }
   function step(n) { if (cur < 0) return; open((cur + n + view.length) % view.length); }
 
-  frontEl.onclick = function () { if (!showingBack()) turn(); };
+  frontEl.onclick = function (e) { if (!showingBack()) turn(side(e)); };
 
   /* Tapping the poem side turns the card back — but a tap has to be told apart
      from a scroll drag, so it is measured rather than trusting click. */
@@ -1168,7 +1197,7 @@
     if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 8) return;   // a drag
     if (performance.now() - d.t > 500) return;                      // a hold
     if (bodyEl.scrollTop !== d.top) return;                         // a scroll
-    if (showingBack()) turn();
+    if (showingBack()) turn(side(e));
   });
 
   reader.querySelector(".opw-x").onclick = shut;
@@ -1181,7 +1210,7 @@
     if (e.key === "Escape") shut();
     else if (e.key === "ArrowRight") step(1);
     else if (e.key === "ArrowLeft") step(-1);
-    else if (e.key === " ") { e.preventDefault(); turn(); }
+    else if (e.key === " ") { e.preventDefault(); turn(1); }
   });
 
   /* A swipe has to be more sideways than it is up and down, and it cannot have
