@@ -58,12 +58,21 @@
     ".opw-layer{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform;",
       "backface-visibility:hidden}",
 
-    ".opw-tile{position:absolute;top:0;left:0;transform-origin:50% 50%;background:var(--opw-paper);",
-      "border-radius:11px;padding:9px 9px 0;box-shadow:0 10px 24px -14px rgba(74,12,70,.44);",
-      "border:1px solid rgba(74,12,70,.06);contain:layout style paint}",
-    ".opw-tile::after{content:\"\";position:absolute;inset:-1px;border-radius:11px;",
+    /* Two elements, and the split is the whole trick. The tile holds the card's
+       place on the wall — its transform is the position, written once when it is
+       made and animated when it arrives, and nothing else may touch it. The card
+       inside is the object you see, and it is free to move on its own. Trying to
+       scale the tile on hover just sent it somewhere else on the wall.
+
+       Note the tile is contain:layout style and NOT paint: paint containment
+       clips to the box, which would cut the corners off a card that has grown. */
+    ".opw-tile{position:absolute;top:0;left:0;transform-origin:50% 50%;contain:layout style}",
+    ".opw-card{position:relative;background:var(--opw-paper);border-radius:11px;padding:9px 9px 0;",
+      "box-shadow:0 10px 24px -14px rgba(74,12,70,.44);border:1px solid rgba(74,12,70,.06);",
+      "transform-origin:50% 50%}",
+    ".opw-card::after{content:\"\";position:absolute;inset:-1px;border-radius:11px;",
       "border:1px solid transparent;transition:border-color .2s ease;pointer-events:none}",
-    ".opw-tile:hover::after{border-color:var(--opw-pink)}",
+    ".opw-tile:hover .opw-card::after{border-color:var(--opw-pink)}",
     /* Something has to happen when the pointer lands on a card, or there is
        nothing to say the wall is made of things you can open. The cursor does
        most of that work; the rest is the photo easing forward inside its frame
@@ -76,20 +85,20 @@
        and a sticky :hover left behind by a tap is worse than nothing. */
     "@media (hover:hover) and (pointer:fine){",
       ".opw-tile{cursor:pointer}",
-      ".opw-tile img{transition:opacity .4s ease,transform .3s cubic-bezier(.2,.8,.2,1)}",
-      ".opw-tile{transition:box-shadow .26s ease}",
-      ".opw-tile:hover{box-shadow:0 20px 38px -16px rgba(74,12,70,.5)}",
-      ".opw-tile:hover img{transform:scale(1.055)}",
+      ".opw-card{transition:transform .3s cubic-bezier(.2,.8,.2,1),box-shadow .26s ease}",
+      ".opw-tile:hover{z-index:3}",
+      ".opw-tile:hover .opw-card{transform:scale(1.05);",
+        "box-shadow:0 22px 40px -16px rgba(74,12,70,.5)}",
       ".opw-tile:hover .opw-cap{color:var(--opw-blue)}",
       ".opw-cap{transition:color .2s ease}",
       /* Far out the cards are thumbnails and the whole thing turns to noise. */
-      ".opw-tiny .opw-tile:hover img{transform:none}",
-      ".opw-tiny .opw-tile:hover{box-shadow:0 5px 12px -8px rgba(74,12,70,.35)}",
+      ".opw-tiny .opw-tile:hover .opw-card{transform:none;",
+        "box-shadow:0 5px 12px -8px rgba(74,12,70,.35)}",
       "}",
     /* While the wall is being dragged the hand is holding the wall, not pointing
        at a card, and none of this should be running. */
     ".opw-stage.opw-grab .opw-tile{cursor:grabbing}",
-    ".opw-moving .opw-tile img,.opw-moving .opw-tile{transition:none}",
+    ".opw-moving .opw-tile img{transition:none}",
     ".opw-ph{position:relative;width:100%;border-radius:6px;overflow:hidden;background:#f6e9fa}",
     ".opw-tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;",
       "-webkit-user-drag:none;user-drag:none;",
@@ -103,10 +112,10 @@
     ".opw-cap{font-family:var(--opw-read);font-size:12.5px;line-height:1;color:#000;",
       "padding:9px 2px 10px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
     /* while the camera is moving, drop the hover ring work */
-    ".opw-moving .opw-tile::after{transition:none}",
+    ".opw-moving .opw-card::after,.opw-moving .opw-card{transition:none}",
     /* far out the captions are unreadable anyway — skip the text layout */
     ".opw-tiny .opw-cap{visibility:hidden}",
-    ".opw-tiny .opw-tile{box-shadow:0 5px 12px -8px rgba(74,12,70,.35)}",
+    ".opw-tiny .opw-card{box-shadow:0 5px 12px -8px rgba(74,12,70,.35)}",
         /* Two ways of pushing the wall back, and which one you get depends on how
        much wall there is. A blur has to rasterise everything underneath it
        before it can blur it, and that cost is per card, not per pixel: with 160
@@ -649,6 +658,8 @@
       el = document.createElement("div");
       el.className = "opw-tile";
       el.style.width = CARD_W + "px";
+      var card = document.createElement("div");
+      card.className = "opw-card";
       var ph = document.createElement("div");
       ph.className = "opw-ph";
       ph.style.height = Math.round(CARD_W * 1.16) + "px";
@@ -669,7 +680,8 @@
       var cap = document.createElement("div");
       cap.className = "opw-cap";
       cap.textContent = p.d.name;
-      el.appendChild(ph); el.appendChild(cap);
+      card.appendChild(ph); card.appendChild(cap);
+      el.appendChild(card);
       el._img = im; el._cap = cap;
     }
     im.style.display = broken[p.d.img] ? "none" : "";
