@@ -1079,8 +1079,25 @@
      included, so it is understood to BE that card. */
   var EASE = "cubic-bezier(.19,.86,.24,1)";
 
-  flipwrap.addEventListener("pointerenter", function () { reader.style.setProperty("--opw-lit", "1"); });
+  /* The lean and the light follow a pointer, and a finger is not one. There is
+     no pointerleave on a touch screen, so a tap used to leave the card tilted
+     for good — and a card tilted in three dimensions no longer covers the place
+     it appears to cover. Tap the left of it after that and the tap goes past the
+     card into the space behind, where nothing is listening, which is why that
+     half of the card went dead while the right half kept working. */
+  function untilt() {
+    reader.style.setProperty("--opw-lit", "0");
+    reader.style.setProperty("--opw-sx", ".5");
+    reader.style.setProperty("--opw-sy", ".5");
+    cardtilt.style.transform = "none";
+  }
+
+  flipwrap.addEventListener("pointerenter", function (e) {
+    if (e.pointerType !== "mouse") return;
+    reader.style.setProperty("--opw-lit", "1");
+  });
   flipwrap.addEventListener("pointermove", function (e) {
+    if (e.pointerType !== "mouse") return;
     var r = flipwrap.getBoundingClientRect();
     var x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
     reader.style.setProperty("--opw-sx", x.toFixed(3));
@@ -1088,12 +1105,10 @@
     cardtilt.style.transform = "rotateX(" + (-(y - .5) * 13.6).toFixed(2) + "deg) rotateY(" +
       ((x - .5) * 16).toFixed(2) + "deg)";
   });
-  flipwrap.addEventListener("pointerleave", function () {
-    reader.style.setProperty("--opw-lit", "0");
-    reader.style.setProperty("--opw-sx", ".5");
-    reader.style.setProperty("--opw-sy", ".5");
-    cardtilt.style.transform = "none";
-  });
+  flipwrap.addEventListener("pointerleave", untilt);
+  /* Belt and braces: whatever the input, letting go puts the card back flat. */
+  flipwrap.addEventListener("pointerup", untilt);
+  flipwrap.addEventListener("pointercancel", untilt);
 
   function tileAngle(el) {
     var m = /rotate\(([-\d.]+)deg\)/.exec(el.style.transform || "");
@@ -1234,9 +1249,58 @@
       populate();
     });
   }
-  function step(n) { if (cur < 0) return; open((cur + n + view.length) % view.length); }
+  /* A swipe sends the card off the way you pushed it and brings the next one in
+     from the other side, so the gesture has somewhere to land rather than the
+     poet changing under your thumb.
 
-  frontEl.onclick = function (e) { if (!showingBack()) turn(side(e)); };
+     Only for the swipe. The arrows and the arrow keys change the poet outright,
+     because throwing the card sideways is an answer to a sideways push and means
+     nothing after a key press.
+
+     It plays on release rather than following the finger: a card dragged live
+     would be competing with the poem's own scrolling and with the tap that turns
+     it over, and neither of those is worth risking for it. */
+  var sliding = false;
+
+  function step(n, fly) {
+    if (cur < 0 || sliding) return;
+    var to = (cur + n + view.length) % view.length;
+    var away = n > 0 ? -1 : 1;          // forward throws the card to the left
+    if (!fly || calm || !flipwrap.animate) { open(to); return; }
+    var w = flipwrap.getBoundingClientRect().width || 360;
+    sliding = true;
+    var out = flipwrap.animate([
+      { transform: "none", opacity: 1 },
+      { transform: "translateX(" + (away * (w * 0.85 + 40)).toFixed(0) + "px) rotate(" +
+        (away * 6) + "deg)", opacity: 0 }
+    ], { duration: 210, easing: "cubic-bezier(.4,0,.85,.4)", fill: "forwards" });
+    var done = function () {
+      out.cancel();
+      open(to);
+      flipwrap.animate([
+        { transform: "translateX(" + (-away * (w * 0.5 + 30)).toFixed(0) + "px) rotate(" +
+          (-away * 4) + "deg)", opacity: 0 },
+        { transform: "none", opacity: 1 }
+      ], { duration: 300, easing: "cubic-bezier(.18,.86,.26,1)" });
+      sliding = false;
+    };
+    if (out.finished) out.finished.then(done, done); else out.onfinish = done;
+  }
+
+  /* Measured rather than left to click, so the photo side behaves exactly like
+     the poem side: a tap is a tap on both, and a drag on neither. */
+  var fdown = null;
+  frontEl.addEventListener("pointerdown", function (e) {
+    fdown = { x: e.clientX, y: e.clientY, t: performance.now() };
+  });
+  frontEl.addEventListener("pointerup", function (e) {
+    if (!fdown) return;
+    var d = fdown; fdown = null;
+    if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 10) return;   // a drag
+    if (performance.now() - d.t > 500) return;                               // a hold
+    if (!showingBack()) turn(side(e));
+  });
+  frontEl.addEventListener("pointercancel", function () { fdown = null; });
 
   /* Tapping the poem side turns the card back — but a tap has to be told apart
      from a scroll drag, so it is measured rather than trusting click. */
@@ -1280,7 +1344,7 @@
     var dy = e.changedTouches[0].clientY - tsy;
     var scrolled = bodyEl.scrollTop !== tsTop;
     tsx = tsy = null;
-    if (!scrolled && Math.abs(dx) > 64 && Math.abs(dx) > Math.abs(dy) * 1.6) step(dx < 0 ? 1 : -1);
+    if (!scrolled && Math.abs(dx) > 64 && Math.abs(dx) > Math.abs(dy) * 1.6) step(dx < 0 ? 1 : -1, true);
   }, { passive: true });
 
   /* ------------------------------------------------ keep the page honest
