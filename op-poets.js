@@ -315,8 +315,8 @@
       ".opw-flipwrap{width:min(91vw,452px);height:min(84vh,calc(min(91vw,452px) * 1.575))}",
       ".opw-x{top:12px;right:12px;width:34px;height:34px}",
       ".opw-bhead{padding:26px 22px 10px}.opw-body{padding:12px 22px 18px}",
-      ".opw-bfoot{padding:12px 22px 15px}.opw-bhead h2{font-size:22px}",
-      ".opw-who{font-size:12.5px}",
+      ".opw-bfoot{padding:12px 22px 15px}.opw-bhead h2{font-size:24px}",
+      ".opw-who{font-size:13.5px}",
       ".opw-body p,.opw-body li{font-size:13px;line-height:1.58}}",
     /* Sideways on a phone. The card is sized off the height and kept to the
        proportions of a real card, rather than filling the width and coming out
@@ -970,6 +970,7 @@
      rather than an animation. Click-driven only, so nothing can get stuck
      half-turned, and the poem does not become scrollable until it has landed. */
   var cur = -1, yaw = 0, spinning = false, tFrom = 0, tTo = 0, tStart = 0;
+  var faceBack = false;      // is the poem the side you are looking at
   var TURN_MS = calm ? 1 : 620;
   function easeInOut(k) { return k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; }
 
@@ -986,9 +987,8 @@
     var a = paint();
     if (k >= 1) {
       yaw = tTo; spinning = false;
-      var back = a > 90 && a < 270;
-      flipper.classList.toggle("opw-landed", back);
-      if (back) fade();
+      flipper.classList.toggle("opw-landed", faceBack);
+      if (faceBack) fade();
       return;
     }
     flipper.classList.remove("opw-landed");   // mid-turn it is an object, not a page
@@ -1010,20 +1010,29 @@
     return e.clientX < r.left + r.width / 2 ? -1 : 1;
   }
 
+  /* Half a turn from wherever it is, in the direction you pushed. It used to
+     snap the running angle to the nearest multiple of 180 first and add the half
+     turn to THAT — which made the result depend on the card's whole history of
+     turns rather than on the side you touched, so a card would end up accepting
+     one direction and ignoring the other. Nothing is derived from the angle now:
+     the direction comes from the tap and the face is a plain boolean, so the two
+     can never disagree about which side you are looking at. */
   function turn(dir) {
     if (spinning) return;                     // one turn at a time
-    dir = dir < 0 ? -1 : 1;
-    tFrom = yaw; tTo = Math.round(yaw / 180) * 180 + 180 * dir;
+    tFrom = yaw;
+    tTo = yaw + 180 * (dir < 0 ? -1 : 1);
+    faceBack = !faceBack;
     tStart = performance.now(); spinning = true;
     requestAnimationFrame(spin);
   }
   function faceFront() {                      // a new poet shows the photo at once
     spinning = false;
-    yaw = tFrom = tTo = Math.round(yaw / 360) * 360;
+    yaw = tFrom = tTo = 0;
+    faceBack = false;
     flipper.classList.remove("opw-landed");
     paint();
   }
-  function showingBack() { var a = ((tTo % 360) + 360) % 360; return a > 90 && a < 270; }
+  function showingBack() { return faceBack; }
 
   /* Webflow rich text stores poems two ways: <br>-separated lines inside one
      paragraph, or one paragraph per line. In the second case the paragraph
