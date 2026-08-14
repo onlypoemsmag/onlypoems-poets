@@ -64,6 +64,32 @@
     ".opw-tile::after{content:\"\";position:absolute;inset:-1px;border-radius:11px;",
       "border:1px solid transparent;transition:border-color .2s ease;pointer-events:none}",
     ".opw-tile:hover::after{border-color:var(--opw-pink)}",
+    /* Something has to happen when the pointer lands on a card, or there is
+       nothing to say the wall is made of things you can open. The cursor does
+       most of that work; the rest is the photo easing forward inside its frame
+       and the shadow dropping, so the card reads as lifting off the wall.
+
+       None of it touches the tile's own transform — that is holding the card's
+       position on the wall, and animating it here would send the card somewhere
+       else entirely. The photo moves instead, inside a frame that clips it, and
+       only ever one card at a time. Fine pointers only: a phone has no hover,
+       and a sticky :hover left behind by a tap is worse than nothing. */
+    "@media (hover:hover) and (pointer:fine){",
+      ".opw-tile{cursor:pointer}",
+      ".opw-tile img{transition:opacity .4s ease,transform .3s cubic-bezier(.2,.8,.2,1)}",
+      ".opw-tile{transition:box-shadow .26s ease}",
+      ".opw-tile:hover{box-shadow:0 20px 38px -16px rgba(74,12,70,.5)}",
+      ".opw-tile:hover img{transform:scale(1.055)}",
+      ".opw-tile:hover .opw-cap{color:var(--opw-blue)}",
+      ".opw-cap{transition:color .2s ease}",
+      /* Far out the cards are thumbnails and the whole thing turns to noise. */
+      ".opw-tiny .opw-tile:hover img{transform:none}",
+      ".opw-tiny .opw-tile:hover{box-shadow:0 5px 12px -8px rgba(74,12,70,.35)}",
+      "}",
+    /* While the wall is being dragged the hand is holding the wall, not pointing
+       at a card, and none of this should be running. */
+    ".opw-stage.opw-grab .opw-tile{cursor:grabbing}",
+    ".opw-moving .opw-tile img,.opw-moving .opw-tile{transition:none}",
     ".opw-ph{position:relative;width:100%;border-radius:6px;overflow:hidden;background:#f6e9fa}",
     ".opw-tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;",
       "-webkit-user-drag:none;user-drag:none;",
@@ -189,8 +215,8 @@
     ".opw-flipper.opw-landed .opw-back{pointer-events:auto}",
     ".opw-flipper.opw-landed .opw-front{pointer-events:none}",
     ".opw-bhead{flex:0 0 auto;padding:34px 28px 12px}",
-    ".opw-who{font-family:var(--opw-read);font-size:12.5px;color:#000;line-height:1}",
-    ".opw-bhead h2{margin:8px 0 0;font-family:var(--opw-display);font-weight:400;font-size:26px;",
+    ".opw-who{font-family:var(--opw-read);font-size:13.5px;color:#000;line-height:1}",
+    ".opw-bhead h2{margin:8px 0 0;font-family:var(--opw-display);font-weight:400;font-size:27px;",
       "line-height:1.06;color:var(--opw-blue)}",
     ".opw-bwrap{flex:1 1 auto;min-height:0;position:relative;display:flex}",
     ".opw-bwrap::after{content:\"\";position:absolute;left:0;right:7px;bottom:0;height:34px;",
@@ -214,7 +240,7 @@
        poem was rendering at the site's 22px no matter what this file said about
        the container. It looked right in isolation and wrong on the page, which
        is the whole reason to measure on the live site rather than a test page. */
-    ".opw-body p,.opw-body li{margin:0 0 1.05em;font-size:13px;line-height:1.58}",
+    ".opw-body p,.opw-body li{margin:0 0 1.05em;font-size:15px;line-height:1.56}",
         ".opw-body ul,.opw-body ol{margin:0 0 1.05em;padding:0;list-style:none}",
     /* The poem starts where the poet's name starts. Rich text arrives wrapped in
        whatever the CMS felt like — lists, nested divs — and the site's own styles
@@ -280,7 +306,9 @@
       ".opw-flipwrap{width:min(91vw,452px);height:min(84vh,calc(min(91vw,452px) * 1.575))}",
       ".opw-x{top:12px;right:12px;width:34px;height:34px}",
       ".opw-bhead{padding:26px 22px 10px}.opw-body{padding:12px 22px 18px}",
-      ".opw-bfoot{padding:12px 22px 15px}.opw-bhead h2{font-size:22px}}",
+      ".opw-bfoot{padding:12px 22px 15px}.opw-bhead h2{font-size:22px}",
+      ".opw-who{font-size:12.5px}",
+      ".opw-body p,.opw-body li{font-size:13px;line-height:1.58}}",
     /* Sideways on a phone. The card is sized off the height and kept to the
        proportions of a real card, rather than filling the width and coming out
        squat — 452 by 712 is the shape everywhere else, so hold it here too. */
