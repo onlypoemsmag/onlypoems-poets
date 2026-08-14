@@ -81,12 +81,16 @@
     /* far out the captions are unreadable anyway — skip the text layout */
     ".opw-tiny .opw-cap{visibility:hidden}",
     ".opw-tiny .opw-tile{box-shadow:0 5px 12px -8px rgba(74,12,70,.35)}",
-        /* The blur goes on the stage, which is exactly one window big, and never on
-       the layer. The layer's paint area is the whole wall in world space — zoomed
-       out that is thousands of pixels across, and blurring it made opening and
-       closing a card crawl, while zoomed in on a handful of cards it was fine.
-       Same picture, constant cost. */
+        /* Two ways of pushing the wall back, and which one you get depends on how
+       much wall there is. A blur has to rasterise everything underneath it
+       before it can blur it, and that cost is per card, not per pixel: with 160
+       cards on screen it was a third of a second of frozen frames on every open
+       and close, whether it was transitioned or applied in one go. Under about
+       sixty cards it is free and it looks better, so that is when it is used.
+       Past that the cards are thumbnail-sized anyway and a blur of them is
+       indistinguishable from a wash, so a wash is what it gets. */
     ".opw-blur{filter:blur(10px) saturate(1.06);transition:filter .28s ease}",
+    ".opw-reader.opw-veil{background:rgba(253,242,255,.93)}",
 
     ".opw-bar{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:6;",
       "display:flex;align-items:center;gap:2px;background:var(--opw-paper);border-radius:14px;",
@@ -268,7 +272,12 @@
       ".opw-glass{width:26px;height:26px}",
       ".opw-hint{bottom:64px;font-size:11.5px;padding:6px 13px;max-width:92%;",
         "overflow:hidden;text-overflow:ellipsis}",
-      ".opw-flipwrap{height:min(84vh,712px)}",
+      /* The card keeps the proportions it has on a desktop — 452 by 712 — instead
+         of stretching to whatever height is going spare. Tall and narrow was
+         cropping the portraits down their sides, and left no air above or below
+         the card. Height follows width now, and the viewport cap only bites on
+         a very short screen. */
+      ".opw-flipwrap{width:min(91vw,452px);height:min(84vh,calc(min(91vw,452px) * 1.575))}",
       ".opw-x{top:12px;right:12px;width:34px;height:34px}",
       ".opw-bhead{padding:26px 22px 10px}.opw-body{padding:12px 22px 18px}",
       ".opw-bfoot{padding:12px 22px 15px}.opw-bhead h2{font-size:22px}}",
@@ -1099,9 +1108,13 @@
     });
 
     var wasOpen = reader.classList.contains("opw-open");
-    if (!wasOpen) openedFrom = fromEl || null;
+    if (!wasOpen) {
+      openedFrom = fromEl || null;
+      var crowded = poolKeys.length > 60;
+      stage.classList.toggle("opw-blur", !crowded);
+      reader.classList.toggle("opw-veil", crowded);
+    }
     reading = true;
-    stage.classList.add("opw-blur");
     bar.classList.add("opw-off"); zoomEl.classList.add("opw-off"); hintEl.classList.add("opw-off");
     if (!wasOpen) {
       htmlOverflow = document.documentElement.style.overflow;
@@ -1163,6 +1176,7 @@
     var back = tileFor(cur) || openedFrom;
     /* The wall comes back into focus as the card leaves, not after it. */
     stage.classList.remove("opw-blur");
+    reader.classList.remove("opw-veil");
     bar.classList.remove("opw-off"); zoomEl.classList.remove("opw-off"); hintEl.classList.remove("opw-off");
     sbar.classList.remove("opw-show");
     playShut(back, function () {
