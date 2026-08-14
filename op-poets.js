@@ -969,7 +969,7 @@
      ribbing peaks edge-on, which is what makes the card read as an object
      rather than an animation. Click-driven only, so nothing can get stuck
      half-turned, and the poem does not become scrollable until it has landed. */
-  var cur = -1, yaw = 0, spinning = false, tFrom = 0, tTo = 0, tStart = 0;
+  var cur = -1, yaw = 0, goal = 0, spinning = false, tFrom = 0, tTo = 0, tStart = 0;
   var faceBack = false;      // is the poem the side you are looking at
   var TURN_MS = calm ? 1 : 620;
   function easeInOut(k) { return k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; }
@@ -1010,29 +1010,36 @@
     return e.clientX < r.left + r.width / 2 ? -1 : 1;
   }
 
-  /* Half a turn from wherever it is, in the direction you pushed. It used to
-     snap the running angle to the nearest multiple of 180 first and add the half
-     turn to THAT — which made the result depend on the card's whole history of
-     turns rather than on the side you touched, so a card would end up accepting
-     one direction and ignoring the other. Nothing is derived from the angle now:
-     the direction comes from the tap and the face is a plain boolean, so the two
-     can never disagree about which side you are looking at. */
+  /* Half a turn on from where the card was last headed, in the direction you
+     pushed. The half turn is added to the GOAL and never to the running angle:
+     a tap that lands mid-turn has to keep the card square to the viewer, and
+     "wherever it is now, plus 180" leaves it stopped at whatever angle it
+     happened to have reached — the card sat askew and the loop went quiet.
+
+     It is not derived from the angle either. Rounding the running angle to the
+     nearest face made the result depend on the card's whole history of turns
+     rather than on the side you touched, and a card would end up accepting one
+     direction and ignoring the other. goal is a plain counter of half turns and
+     faceBack a plain boolean, so the two can never disagree. */
   function turn(dir) {
-    if (spinning) return;                     // one turn at a time
     tFrom = yaw;
-    tTo = yaw + 180 * (dir < 0 ? -1 : 1);
+    goal += 180 * (dir < 0 ? -1 : 1);
+    tTo = goal;
     faceBack = !faceBack;
-    tStart = performance.now(); spinning = true;
-    requestAnimationFrame(spin);
+    tStart = performance.now();
+    /* A tap that lands mid-turn re-aims rather than being dropped. It used to
+       return early while spinning, and since a turn runs the better part of a
+       second, tapping at a natural pace threw away every second tap — which
+       reads as the card refusing one of its two sides. */
+    if (!spinning) { spinning = true; requestAnimationFrame(spin); }
   }
   function faceFront() {                      // a new poet shows the photo at once
     spinning = false;
-    yaw = tFrom = tTo = 0;
+    yaw = tFrom = tTo = goal = 0;
     faceBack = false;
     flipper.classList.remove("opw-landed");
     paint();
   }
-  function showingBack() { return faceBack; }
 
   /* Webflow rich text stores poems two ways: <br>-separated lines inside one
      paragraph, or one paragraph per line. In the second case the paragraph
@@ -1296,35 +1303,32 @@
     if (out.finished) out.finished.then(done, done); else out.onfinish = done;
   }
 
-  /* Measured rather than left to click, so the photo side behaves exactly like
-     the poem side: a tap is a tap on both, and a drag on neither. */
+  /* A tap turns the card, whichever face is up, and whether or not one is.
+     This listens on the wrapper rather than on the two faces, which is the
+     whole point: a face is only hit-testable while it is turned towards you,
+     and the poem side is deliberately inert until the card has landed — so
+     for most of the 620ms of a turn NEITHER face can be hit, and a tap that
+     arrives then used to fall through to nothing. At a natural tapping pace
+     that reads as the card refusing every second tap, or as one side having
+     stopped working.
+
+     Measured rather than left to click, so a tap is told apart from a drag on
+     the wall, from a scroll of the poem, and from a press on a link. */
   var fdown = null;
-  frontEl.addEventListener("pointerdown", function (e) {
-    fdown = { x: e.clientX, y: e.clientY, t: performance.now() };
+  flipwrap.addEventListener("pointerdown", function (e) {
+    fdown = { x: e.clientX, y: e.clientY, t: performance.now(), top: bodyEl.scrollTop };
   });
-  frontEl.addEventListener("pointerup", function (e) {
+  flipwrap.addEventListener("pointercancel", function () { fdown = null; });
+  /* On the window, not the wrapper: a tap begun mid-turn is often released
+     after the card has landed, over a face that swallows the event. */
+  window.addEventListener("pointerup", function (e) {
     if (!fdown) return;
     var d = fdown; fdown = null;
-    if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 10) return;   // a drag
-    if (performance.now() - d.t > 500) return;                               // a hold
-    if (!showingBack()) turn(side(e));
-  });
-  frontEl.addEventListener("pointercancel", function () { fdown = null; });
-
-  /* Tapping the poem side turns the card back — but a tap has to be told apart
-     from a scroll drag, so it is measured rather than trusting click. */
-  var bdown = null;
-  backEl.addEventListener("pointerdown", function (e) {
-    bdown = { x: e.clientX, y: e.clientY, t: performance.now(), top: bodyEl.scrollTop };
-  });
-  backEl.addEventListener("pointerup", function (e) {
-    if (!bdown) return;
-    var d = bdown; bdown = null;
-    if (e.target.closest("a")) return;                              // let links work
-    if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 8) return;   // a drag
-    if (performance.now() - d.t > 500) return;                      // a hold
-    if (bodyEl.scrollTop !== d.top) return;                         // a scroll
-    if (showingBack()) turn(side(e));
+    if (e.target && e.target.closest && e.target.closest("a")) return;  // let links work
+    if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 10) return;  // a drag
+    if (performance.now() - d.t > 500) return;                          // a hold
+    if (bodyEl.scrollTop !== d.top) return;                             // a scroll
+    turn(side(e));
   });
 
   reader.querySelector(".opw-x").onclick = shut;
