@@ -1,6 +1,6 @@
 # Left off the wall
 
-Rewritten by the rebuild. 174 poets are on the wall.
+Rewritten by the rebuild. 175 poets are on the wall.
 
 ## No portrait (41)
 
