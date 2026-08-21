@@ -1,8 +1,8 @@
 # Left off the wall
 
-Rewritten by the rebuild. 175 poets are on the wall.
+Rewritten by the rebuild. 177 poets are on the wall.
 
-## No portrait (41)
+## No portrait (40)
 
 They appear the moment a photo goes on their record.
 
@@ -22,7 +22,6 @@ They appear the moment a photo goes on their record.
 - J.S. Edwards
 - Jaia Hamid Bashir
 - January Santoso
-- Jo Bear
 - Joshua Garcia
 - Julia C. Alter
 - Kate Welsh
