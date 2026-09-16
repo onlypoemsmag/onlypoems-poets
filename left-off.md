@@ -1,19 +1,14 @@
 # Left off the wall
 
-Rewritten by the rebuild. 217 poets are on the wall.
+Rewritten by the rebuild. 222 poets are on the wall.
 
-## No portrait (8)
+## No portrait (3)
 
 They appear the moment a photo goes on their record.
 
 - Anisha Jain
 - Chris Watkins
 - Ed Hamilton
-- Imogen Osborne
-- Jaia Hamid Bashir
-- Margaret Wack
-- Namratha Varadharajan
-- Savannah Massey
 
 ## Portrait but no poem (0)
 
