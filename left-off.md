@@ -1,6 +1,6 @@
 # Left off the wall
 
-Rewritten by the rebuild. 215 poets are on the wall.
+Rewritten by the rebuild. 216 poets are on the wall.
 
 ## No portrait (9)
 
@@ -24,11 +24,11 @@ with the body missing.
 
 - nobody
 
-## Poem is a PDF (1)
+## Poem is a PDF (0)
 
 Their only poem is a visual poem left as a PDF. A card cannot show
 one. Render its pages to images, put the image in the Poems "PDF"
 field, and the next rebuild brings them in — the same swap that makes
 the poem readable on the site, where PDFs go through Google's viewer.
 
-- West Ambrose
+- nobody
