@@ -1,8 +1,8 @@
 # Left off the wall
 
-Rewritten by the rebuild. 216 poets are on the wall.
+Rewritten by the rebuild. 217 poets are on the wall.
 
-## No portrait (9)
+## No portrait (8)
 
 They appear the moment a photo goes on their record.
 
@@ -13,7 +13,6 @@ They appear the moment a photo goes on their record.
 - Jaia Hamid Bashir
 - Margaret Wack
 - Namratha Varadharajan
-- Nnamdi Ndiolo
 - Savannah Massey
 
 ## Portrait but no poem (0)
