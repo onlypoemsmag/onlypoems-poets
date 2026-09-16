@@ -95,6 +95,10 @@ CARD_IMAGE = {
     "the-fulguration-the-in-vitro-fertilization":
         "https://cdn.prod.website-files.com/6813b8835ec760a5ec81755e/"
         "6aaa46232e9a955e312df6b8_the-fulguration-the-in-vitro-fertilization-card.jpg",
+    # Fifteen letter pages, rendered from the PDF and stacked the same way.
+    "nisus-and-euryalus-at-the-louvre":
+        "https://cdn.prod.website-files.com/6813b8835ec760a5ec81755e/"
+        "6aaa4cf2ef71f55f7356e175_nisus-and-euryalus-at-the-louvre-card.jpg",
 }
 
 
