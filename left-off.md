@@ -1,14 +1,23 @@
 # Left off the wall
 
-Rewritten by the rebuild. 224 poets are on the wall.
+Rewritten by the rebuild. 231 poets are on the wall.
 
-## No portrait (3)
+## No portrait (12)
 
 They appear the moment a photo goes on their record.
 
+- Alex Dawson
 - Anisha Jain
+- Antonio Ochoa
 - Chris Watkins
+- Chrissy Martin
 - Ed Hamilton
+- Frank X. Gaspar
+- John Sibley Williams
+- Kyra Wilder
+- Luke Kennard
+- Paul Brucker
+- Tanya Shirley
 
 ## Portrait but no poem (0)
 
