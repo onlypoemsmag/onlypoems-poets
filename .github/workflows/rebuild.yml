@@ -1,12 +1,14 @@
 name: Rebuild the wall
-# Runs every morning, and whenever you press Run workflow.
-# Press it after publishing a poet if you don't want to wait for the morning.
+# Runs every Sunday at noon Toronto time, and whenever you press Run workflow.
+# Noon is 16:00 UTC in summer and 17:00 in winter, so both are scheduled and the clock job lets only the right one through.
 on:
-  schedule:
-    - cron: "0 6 * * *"
+  schedule: [{cron: "0 16 * * 0"}, {cron: "0 17 * * 0"}]
   workflow_dispatch:
 jobs:
+  clock: {runs-on: ubuntu-latest, outputs: {go: "${{ steps.season.outputs.go }}"}, steps: [{id: season, run: 'w="0 17 * * 0"; if [ "$(TZ=America/Toronto date +%Z)" = EDT ]; then w="0 16 * * 0"; fi; if [ "${{ github.event_name }}" != schedule ] || [ "${{ github.event.schedule }}" = "$w" ]; then echo go=yes; else echo go=no; fi >> "$GITHUB_OUTPUT"'}]}
   rebuild:
+    needs: clock
+    if: needs.clock.outputs.go == 'yes'
     runs-on: ubuntu-latest
     permissions:
       contents: write
